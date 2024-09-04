@@ -29,7 +29,7 @@ class Transform:
             "robust_scaler",
             "maxabs_scaler",
         ],
-        **kwargs: float | str,
+        **kwargs: Any,
     ) -> None:
         self.data = data
 
@@ -158,7 +158,7 @@ class OutlierDetection:
         self,
         data: Series,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Find outliers in a time series using the specified method."""
         if method == "iqr":
@@ -220,7 +220,7 @@ class OutlierDetection:
 
         return outliers
 
-    def isolation_forest(self, data: Series, **kwargs) -> Series:
+    def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
         """Detect outliers in a time series using the isolation forest method.
 
         Args:
@@ -247,11 +247,11 @@ class OutlierDetection:
         clf.fit(X)
 
         is_outlier = clf.predict(X)
-        outliers = data[is_outlier == -1]
+        outliers: Series = data[is_outlier == -1]
 
         return outliers
 
-    def lof(self, data: Series, **kwargs) -> Series:
+    def lof(self, data: Series, **kwargs: Any) -> Series:
         """Detect outliers in a time series using the local outlier factor (LOF) method.
 
         Args:
@@ -275,6 +275,6 @@ class OutlierDetection:
         clf = LocalOutlierFactor(**kwargs)
 
         is_outlier = clf.fit_predict(X)
-        outliers = data[is_outlier == -1]
+        outliers: Series = data[is_outlier == -1]
 
         return outliers
