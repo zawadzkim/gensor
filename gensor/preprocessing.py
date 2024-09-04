@@ -1,6 +1,6 @@
 """Class and methods for preprocessing groundwater level data."""
 
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from pandas import Series
@@ -29,8 +29,8 @@ class Transform:
             "robust_scaler",
             "maxabs_scaler",
         ],
-        **kwargs,
-    ):
+        **kwargs: float | str,
+    ) -> None:
         self.data = data
 
         if method == "difference":
@@ -52,10 +52,10 @@ class Transform:
         else:
             raise NotImplementedError()
 
-    def get_transformation(self):
+    def get_transformation(self) -> tuple:
         return self.transformed_data, self.scaler
 
-    def difference(self, **kwargs) -> tuple[Series, Literal["difference"]]:
+    def difference(self, **kwargs: int) -> tuple[Series, str]:
         """Difference the time series data.
 
         Args:
@@ -68,7 +68,7 @@ class Transform:
         transformed = self.data.diff(periods=periods).dropna()
         return (transformed, "difference")
 
-    def log(self) -> tuple[Series, Literal["log"]]:
+    def log(self) -> tuple[Series, str]:
         """Take the natural logarithm of the time series data.
 
         Returns:
@@ -77,7 +77,7 @@ class Transform:
         transformed = self.data.apply(lambda x: x if x <= 0 else np.log(x))
         return (transformed, "log")
 
-    def square_root(self) -> tuple[Series, Literal["square_root"]]:
+    def square_root(self) -> tuple[Series, str]:
         """Take the square root of the time series data.
 
         Returns:
@@ -86,7 +86,7 @@ class Transform:
         transformed = self.data.apply(lambda x: x if x <= 0 else np.sqrt(x))
         return (transformed, "square_root")
 
-    def box_cox(self, **kwargs) -> tuple[Series, Literal["box-cox"]]:
+    def box_cox(self, **kwargs: float) -> tuple[Series, str]:
         """Apply the Box-Cox transformation to the time series data. Only works
             for all positive datasets!
 
@@ -114,7 +114,7 @@ class Transform:
 
         return transformed_series, "box-cox"
 
-    def standard_scaler(self) -> tuple[Series, StandardScaler]:
+    def standard_scaler(self) -> tuple[Series, Any]:
         """Normalize a pandas Series using StandardScaler."""
         scaler = StandardScaler()
         scaled_values = scaler.fit_transform(
@@ -123,7 +123,7 @@ class Transform:
         scaled_series = Series(scaled_values, index=self.data.index)
         return scaled_series, scaler
 
-    def minmax_scaler(self) -> tuple[Series, MinMaxScaler]:
+    def minmax_scaler(self) -> tuple[Series, Any]:
         """Normalize a pandas Series using MinMaxScaler."""
         scaler = MinMaxScaler()
         scaled_values = scaler.fit_transform(
@@ -132,7 +132,7 @@ class Transform:
         scaled_series = Series(scaled_values, index=self.data.index)
         return scaled_series, scaler
 
-    def robust_scaler(self) -> tuple[Series, RobustScaler]:
+    def robust_scaler(self) -> tuple[Series, Any]:
         """Normalize a pandas Series using RobustScaler."""
         scaler = RobustScaler()
         scaled_values = scaler.fit_transform(
@@ -141,7 +141,7 @@ class Transform:
         scaled_series = Series(scaled_values, index=self.data.index)
         return scaled_series, scaler
 
-    def maxabs_scaler(self) -> tuple[Series, MaxAbsScaler]:
+    def maxabs_scaler(self) -> tuple[Series, Any]:
         """Normalize a pandas Series using MaxAbsScaler."""
         scaler = MaxAbsScaler()
         scaled_values = scaler.fit_transform(
@@ -159,7 +159,7 @@ class OutlierDetection:
         data: Series,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
         **kwargs,
-    ):
+    ) -> None:
         """Find outliers in a time series using the specified method."""
         if method == "iqr":
             self.outliers = self.iqr(data, **kwargs)
@@ -172,7 +172,7 @@ class OutlierDetection:
         else:
             raise NotImplementedError()
 
-    def iqr(self, data: Series, **kwargs) -> Series:
+    def iqr(self, data: Series, **kwargs: float) -> Series:
         """Use interquartile range (IQR).
 
         Parameters:
@@ -198,7 +198,7 @@ class OutlierDetection:
 
         return outliers
 
-    def zscore(self, data: Series, **kwargs) -> Series:
+    def zscore(self, data: Series, **kwargs: float) -> Series:
         """Detect outliers in a time series using the z-score method.
 
         Args:
@@ -216,7 +216,7 @@ class OutlierDetection:
         mean = data.mean()
         std_dev = data.std()
 
-        outliers = data[(data - mean).abs() > threshold * std_dev]
+        outliers: Series = data[(data - mean).abs() > threshold * std_dev]
 
         return outliers
 
