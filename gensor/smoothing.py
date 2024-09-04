@@ -26,14 +26,14 @@ def smooth_data(
         pandas.Series: The smoothed time series.
     """
     if method == "rolling_mean":
-        smoothed_data = data.timeseries.rolling(window=window, center=True).mean()
+        smoothed_data = data.ts.rolling(window=window, center=True).mean()
     elif method == "rolling_median":
-        smoothed_data = data.timeseries.rolling(window=window, center=True).median()
+        smoothed_data = data.ts.rolling(window=window, center=True).median()
     else:
         raise NotImplementedError()
 
     valid_indices = smoothed_data.notna()
-    original_data_aligned = data.timeseries[valid_indices]
+    original_data_aligned = data.ts[valid_indices]
     smoothed_data_aligned = smoothed_data[valid_indices]
 
     if print_statistics:
@@ -60,7 +60,7 @@ def smooth_data(
         plt.show()
 
     if inplace:
-        data.timeseries = smoothed_data
+        data.ts = smoothed_data
         return None
     else:
         return smoothed_data

@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
 import pandera as pa
 import pydantic as pyd
 from matplotlib import pyplot as plt
-from sklearn.preprocessing import (
-    MaxAbsScaler,
-    MinMaxScaler,
-    RobustScaler,
-    StandardScaler,
-)
 
 from .db import DatabaseConnection
 from .exceptions import IndexOutOfRangeError, TimeseriesNotFound, TimeseriesUnequal
@@ -65,9 +59,7 @@ class Timeseries(pyd.BaseModel):
     sensor: str | None = None
     sensor_alt: float | None = None
     outliers: pd.Series | None = pyd.Field(default=None, repr=False)
-    transformation: (
-        StandardScaler | MinMaxScaler | RobustScaler | MaxAbsScaler | str | None
-    ) = pyd.Field(default=None, repr=False)
+    transformation: Any = pyd.Field(default=None, repr=False)
 
     def __eq__(self, other: object) -> bool:
         """Check equality based on location, sensor, and variable."""
@@ -81,7 +73,7 @@ class Timeseries(pyd.BaseModel):
             and self.sensor == other.sensor
         )
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: Any) -> Any:
         """Delegate attribute access to the underlying pandas Series if it exists."""
 
         error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
@@ -91,7 +83,7 @@ class Timeseries(pyd.BaseModel):
             ts_attr = getattr(self.ts, attr)
             if callable(ts_attr):
 
-                def wrapper(*args, **kwargs):
+                def wrapper(*args: Any, **kwargs: Any) -> Any:
                     result = ts_attr(*args, **kwargs)
                     # If the result is a Series, return a new Timeseries; otherwise, return the result
                     if isinstance(result, pd.Series):
@@ -104,11 +96,11 @@ class Timeseries(pyd.BaseModel):
         raise AttributeError(error_message)
 
     @pyd.field_validator("ts")
-    def validate_ts(cls, v):
+    def validate_ts(cls, v: pd.Series) -> pd.Series:
         return ts_schema.validate(v)
 
     @pyd.field_validator("outliers")
-    def validate_outliers(cls, v):
+    def validate_outliers(cls, v: pd.Series) -> pd.Series:
         if v is not None:
             return ts_schema.validate(v)
         return v
@@ -127,7 +119,7 @@ class Timeseries(pyd.BaseModel):
             raise TimeseriesUnequal()
 
     def resample(
-        self, freq: str, agg_func: Callable = pd.Series.mean, **resample_kwargs
+        self, freq: str, agg_func: Callable = pd.Series.mean, **resample_kwargs: Any
     ) -> Timeseries:
         """Resample the timeseries to a new frequency with a specified
         aggregation function.
@@ -160,7 +152,7 @@ class Timeseries(pyd.BaseModel):
             "robust_scaler",
             "maxabs_scaler",
         ],
-        **transformer_kwargs,
+        **transformer_kwargs: Any,
     ) -> Timeseries:
         """Transforms the timeseries using the specified method.
 
@@ -187,7 +179,7 @@ class Timeseries(pyd.BaseModel):
         self,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
         remove: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Timeseries:
         """Detects outliers in the timeseries using the specified method.
 
@@ -223,12 +215,14 @@ class Timeseries(pyd.BaseModel):
             str: A message indicating the number of rows inserted into the database.
         """
         schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}"
-
-        self.ts.to_sql(schema_name, db.engine, if_exists="append", index=False)
+        con = db.engine.connect()
+        self.ts.to_sql(name=schema_name, con=con, if_exists="append", index=False)
 
         return f"{schema_name} table updated."
 
-    def plot(self, include_outliers: bool = False, ax=None, **plot_kwargs) -> None:
+    def plot(
+        self, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any
+    ) -> tuple:
         """Plots the timeseries data.
 
         Args:
@@ -288,15 +282,15 @@ class Dataset(pyd.BaseModel):
 
     timeseries: list[Timeseries | None] = pyd.Field(default_factory=list)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """Allows to iterate directly over the dataset."""
         return iter(self.timeseries)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gives the number of timeseries in the Dataset."""
         return len(self.timeseries)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Dataset({len(self)})"
 
     def __getitem__(self, index: int) -> Timeseries:
