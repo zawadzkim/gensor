@@ -5,7 +5,7 @@ site_description: Library for handling groundwater sensor data.
 site_author: Mateusz Zawadzki
 edit_uri: edit/main/docs/
 repo_name: zawadzkim/gensor
-copyright: Maintained by <a href="https://zawadzkim.com">Florian</a>.
+copyright: Maintained by <a href="https://zawadzkim.com">Mateusz</a>.
 
 nav:
   - Home: index.md
