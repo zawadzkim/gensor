@@ -10,6 +10,8 @@ copyright: Maintained by <a href="https://zawadzkim.com">Mateusz</a>.
 nav:
   - Home: index.md
   - Modules: modules.md
+
+strict: false
 plugins:
   - search
   - mkdocstrings:
