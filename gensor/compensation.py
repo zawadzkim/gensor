@@ -74,6 +74,9 @@ class Compensator(pyd.BaseModel):
         resample_params = {"freq": alignment_period, "agg_func": "mean"}
 
         if isinstance(self.barometric, Timeseries):
+            if self.ts == self.barometric:
+                print("Skipping compensation: both timeseries are the same.")
+                return None
             baro = self.barometric.resample(**resample_params).ts
         else:
             baro = self.barometric
@@ -100,3 +103,8 @@ class Compensator(pyd.BaseModel):
         )
 
         return compensated
+
+
+def compensate(ts, barometric, drop_low_wc, **kwargs) -> Timeseries:
+    comp = Compensator(ts=ts, barometric=barometric, drop_low_wc=drop_low_wc)
+    return comp.compensate(**kwargs)

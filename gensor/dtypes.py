@@ -331,12 +331,20 @@ class Dataset(pyd.BaseModel):
         Parameters:
             other (Timeseries): The Timeseries object to add.
         """
+        if isinstance(other, list):
+            for ts in other:
+                self._add_single_timeseries(ts)
+        else:
+            self._add_single_timeseries(other)
+
+    def _add_single_timeseries(self, ts: Timeseries):
+        """Adds a single Timeseries to the Dataset or merges if an equal one exists."""
         for i, existing_ts in enumerate(self.timeseries):
-            if existing_ts == other:
-                self.timeseries[i] = existing_ts.concatenate(other)
+            if existing_ts == ts:
+                self.timeseries[i] = existing_ts.concatenate(ts)
                 return
 
-        self.timeseries.append(other)
+        self.timeseries.append(ts)
 
     def filter(
         self,

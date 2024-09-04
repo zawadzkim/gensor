@@ -34,7 +34,7 @@ def valid_barometric_timeseries():
         ts=data,
         variable="pressure",
         unit="cmH2O",
-        location="Station A",
+        location="Barometric",
         sensor="Sensor 1",
         sensor_alt=100,
     )

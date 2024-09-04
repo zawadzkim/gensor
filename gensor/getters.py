@@ -39,15 +39,13 @@ def read_from_csv(path: Path, file_format: Literal["vanessen"] = "vanessen", **k
     )
 
     parser = parsers[file_format]
-    all_ts = []
+    ds = Dataset()
     for f in files:
         print(f"Loading file: {f}")
-        all_ts.extend(parser(f, **kwargs))
+        ts_in_file: list = parser(f, **kwargs)
+        ds.add(ts_in_file)
 
-    if len(all_ts) > 1:
-        return Dataset(timeseries=all_ts)
-    else:
-        return all_ts[0]
+    return ds
 
 
 def read_from_sql(
