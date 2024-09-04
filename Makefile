@@ -10,11 +10,11 @@ check: ## Run code quality tools.
 	@echo "🚀 Checking Poetry lock file consistency with 'pyproject.toml': Running poetry check --lock"
 	@poetry check --lock
 	@echo "🚀 Linting code: Running pre-commit"
-	@poetry run pre-commit run -a
+	@poetry run pre-commit run -a 2>&1 | tee .logs/log_ruff_raw.txt
 	@echo "🚀 Static type checking: Running mypy"
-	@poetry run mypy
+	@poetry run mypy 2>&1 | tee .logs/log_mypy_raw.txt
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
-	@poetry run deptry .
+	@poetry run deptry . 2>&1 | tee .logs/log_deptry_raw.txt
 
 .PHONY: test
 test: ## Test the code with pytest
