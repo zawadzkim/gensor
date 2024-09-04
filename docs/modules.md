@@ -1,1 +1,1 @@
-::: gensor.foo
+::: gensor
