@@ -8,7 +8,7 @@ documentation = "https://zawadzkim.github.io/gensor/"
 readme = "README.md"
 packages = [
   {include = "gensor"},
-  {include = "gensor/py.typed"}
+  {include = "py.typed"}
 ]
 
 [tool.poetry.dependencies]
