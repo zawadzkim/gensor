@@ -27,7 +27,7 @@ class DatabaseConnection(pyd.BaseModel):
     engine: Engine | None = None
     session: Session | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.connect()
 
     def _verify_path(self) -> str:
@@ -39,7 +39,7 @@ class DatabaseConnection(pyd.BaseModel):
             else:
                 return f"sqlite:///{self.db_directory}/{self.db_name}"
 
-    def connect(self):
+    def connect(self) -> Session:
         sqlite_path = self._verify_path()
 
         self.engine = create_engine(sqlite_path)
