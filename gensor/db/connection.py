@@ -1,4 +1,8 @@
-"""Module for database connection."""
+"""Module defining database connection object.
+
+Classes:
+    DatabaseConnection: Database connection object
+"""
 
 from pathlib import Path
 
@@ -10,7 +14,7 @@ from ..exceptions import DatabaseNotFound
 
 
 class DatabaseConnection(pyd.BaseModel):
-    """Class for handling the database connection.
+    """Database connection object.
     If no database exists at the specified path, it will be created.
     If no database is specified, an in-memory database will be used.
 
