@@ -3,8 +3,6 @@ name: validate-codecov-config
 on:
   pull_request:
     paths: [codecov.yaml]
-  push:
-    branches: [main]
 
 jobs:
   validate-codecov-config:
