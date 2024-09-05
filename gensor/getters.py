@@ -1,9 +1,12 @@
-"""Fetching the data from various sources."""
+"""Fetching the data from various sources.
+
+TODO: Fix up the read_from_sql() function to actually work properly.
+"""
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pandas import read_sql
+from pandas import Series, read_sql
 from sqlalchemy import MetaData, Table, select
 
 from .db.connection import DatabaseConnection
@@ -12,7 +15,9 @@ from .exceptions import NoFilesToLoad
 from .parse import parse_vanessen_csv
 
 
-def read_from_csv(path: Path, file_format: Literal["vanessen"] = "vanessen", **kwargs):
+def read_from_csv(
+    path: Path, file_format: Literal["vanessen"] = "vanessen", **kwargs: Any
+) -> Dataset:
     """Loads the data from the Van Essen CSV file(s) and returns a list of Timeseries objects.
 
     Args:
@@ -42,7 +47,7 @@ def read_from_csv(path: Path, file_format: Literal["vanessen"] = "vanessen", **k
     ds = Dataset()
     for f in files:
         print(f"Loading file: {f}")
-        ts_in_file: list = parser(f, **kwargs)
+        ts_in_file = parser(f, **kwargs)
         ds.add(ts_in_file)
 
     return ds
@@ -65,10 +70,21 @@ def read_from_sql(
     schema = Table(f"{location}_{sensor}_{variable}", metadata)
 
     query = select(schema)
-    df = read_sql(query, con=db.engine)
+    if db.engine:
+        with db.engine.connect() as con:
+            df = read_sql(query, con=con, index_col="timestamp")
+
+    if not isinstance(df, Series):
+        raise TypeError
 
     ts_object = Timeseries(
-        timeseries=df, variable=variable, location=location, sensor=sensor, unit=unit
+        ts=df,
+        # Validation done in Pydantic
+        variable=variable,
+        location=location,
+        sensor=sensor,
+        # Validation done in Pydantic
+        unit=unit,
     )
 
     return ts_object

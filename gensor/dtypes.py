@@ -18,6 +18,15 @@ ts_schema = pa.SeriesSchema(
     coerce=True,
 )
 
+VARIABLE_TYPES_AND_UNITS = {
+    "temperature": ["degC"],
+    "pressure": ["cmH2O", "mmH2O"],
+    "conductivity": ["mS/cm"],
+    "flux": ["m/s"],
+    "head": ["m asl"],
+    "depth": ["m"],
+}
+
 
 class Timeseries(pyd.BaseModel):
     """Timeseries from a sensor including measurement metadata.
@@ -215,8 +224,14 @@ class Timeseries(pyd.BaseModel):
             str: A message indicating the number of rows inserted into the database.
         """
         schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}"
-        con = db.engine.connect()
-        self.ts.to_sql(name=schema_name, con=con, if_exists="append", index=False)
+        if db.engine is not None:
+            with db.engine.connect() as con:
+                self.ts.to_sql(
+                    name=schema_name, con=con, if_exists="append", index=False
+                )
+        else:
+            message = "Database engine is not initialized."
+            raise ValueError(message)
 
         return f"{schema_name} table updated."
 
@@ -293,7 +308,7 @@ class Dataset(pyd.BaseModel):
     def __repr__(self) -> str:
         return f"Dataset({len(self)})"
 
-    def __getitem__(self, index: int) -> Timeseries:
+    def __getitem__(self, index: int) -> Timeseries | None:
         """Retrieve a Timeseries object by its index in the dataset.
 
         Parameters:
@@ -310,11 +325,11 @@ class Dataset(pyd.BaseModel):
         except IndexError:
             raise IndexOutOfRangeError(index, len(self)) from None
 
-    def get_stations(self):
+    def get_stations(self) -> list:
         """List all unique locations in the dataset."""
         return [ts.location for ts in self.timeseries if ts is not None]
 
-    def add(self, other: Timeseries):
+    def add(self, other: Timeseries | list[Timeseries]) -> None:
         """Appends a new series to the Dataset or merges series if an equal
         one exists.
 
@@ -331,7 +346,9 @@ class Dataset(pyd.BaseModel):
         else:
             self._add_single_timeseries(other)
 
-    def _add_single_timeseries(self, ts: Timeseries):
+        return
+
+    def _add_single_timeseries(self, ts: Timeseries) -> None:
         """Adds a single Timeseries to the Dataset or merges if an equal one exists."""
         for i, existing_ts in enumerate(self.timeseries):
             if existing_ts == ts:
@@ -339,6 +356,8 @@ class Dataset(pyd.BaseModel):
                 return
 
         self.timeseries.append(ts)
+
+        return
 
     def filter(
         self,
@@ -358,9 +377,11 @@ class Dataset(pyd.BaseModel):
             Timeseries or Dataset: A single Timeseries if exactly one match is found,
                                    or a new Dataset if multiple matches are found.
         """
+
         matching_timeseries = [
             ts
             for ts in self.timeseries
+            if ts is not None
             if (station is None or ts.location == station)
             and (sensor is None or ts.sensor == sensor)
             and (variable is None or ts.variable == variable)

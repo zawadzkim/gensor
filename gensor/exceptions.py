@@ -1,10 +1,9 @@
 class InvalidMeasurementTypeError(ValueError):
     """Raised when a timeseries of a wrong measurement type is operated upon."""
 
-    def __init__(self, timeseries_name: str, expected_type: str = "pressure") -> None:
-        self.timeseries_name = timeseries_name
+    def __init__(self, expected_type: str = "pressure") -> None:
         self.expected_type = expected_type
-        message = f"Timeseries '{self.timeseries_name}' must be of measurement type '{self.expected_type}'."
+        message = f"Timeseries must be of measurement type '{self.expected_type}'."
         super().__init__(message)
 
 

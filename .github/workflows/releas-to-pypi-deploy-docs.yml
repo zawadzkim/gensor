@@ -1,4 +1,4 @@
-name: release-main
+name: Release to PyPi and Deploy Docs
 
 on:
   release:

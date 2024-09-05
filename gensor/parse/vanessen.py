@@ -9,7 +9,7 @@ import chardet
 import pytz
 from pandas import DataFrame, read_csv, to_datetime
 
-from ..dtypes import Timeseries
+from ..dtypes import VARIABLE_TYPES_AND_UNITS, Timeseries
 
 
 def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
@@ -51,7 +51,7 @@ def handle_timestamps(df: DataFrame, tz: str) -> DataFrame:
     return df
 
 
-def parse_vanessen_csv(path: Path, **kwargs) -> list[Any]:
+def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
     """Parses a van Essen csv file and returns a list of Timeseries objects. At this point it
     does not matter whether the file is a barometric or piezometric logger file.
 
@@ -60,12 +60,17 @@ def parse_vanessen_csv(path: Path, **kwargs) -> list[Any]:
     are not working (whihc most likely will be the case), the user should provide their own patterns. The patterns
     can be provided as keyword arguments to the function and it is possible to use OR (|) in the regex pattern.
 
-    Args:
+    !!! warning
+
+        A better check for the variable type and units has to be implemented.
+
+    Parameters:
         path (Path): The path to the file.
-        **kwargs (dict): Optional keyword arguments to specify the regex patterns for the serial number and station.
-            serial_number_pattern (str): The regex pattern to extract the serial number from the file.
-            location_pattern (str): The regex pattern to extract the station from the file.
-            col_names (list): The column names for the dataframe.
+
+    Other Parameters:
+        serial_number_pattern (str): The regex pattern to extract the serial number from the file.
+        location_pattern (str): The regex pattern to extract the station from the file.
+        col_names (list): The column names for the dataframe.
 
     Returns:
         list: A list of Timeseries objects.
@@ -86,7 +91,11 @@ def parse_vanessen_csv(path: Path, **kwargs) -> list[Any]:
         text = f.read()
 
         try:
-            data = {k: re.search(v, text).group() for k, v in data.items()}
+            data = {
+                k: (match.group() if (match := re.search(v, text)) else None)
+                for k, v in data.items()
+            }
+
         except AttributeError:
             print(
                 f"Skipping file {path} due to missing patterns. If this is not expected, please provide the correct patterns."
@@ -104,22 +113,33 @@ def parse_vanessen_csv(path: Path, **kwargs) -> list[Any]:
         df = read_csv(
             data_io, skiprows=1, header=None, names=column_names, index_col="timestamp"
         )
+        timezone_pattern = kwargs.get("timezone_pattern", r"UTC[+-]?\d+")
+        timezone_match = re.search(timezone_pattern, text)
 
-        timezone_match = re.search(
-            kwargs.get("timezone_pattern", r"UTC[+-]?\d+"), text
-        ).group()
+        timezone = timezone_match.group() if timezone_match else "UTC"
 
-        df = handle_timestamps(df, timezone_match)
+        df = handle_timestamps(df, timezone)
 
-        ts_list = [
-            Timeseries(
-                ts=df[col],
-                variable=col,
-                location=data.get("location"),
-                sensor=data.get("sensor"),
-                unit="cmH2O" if col == "pressure" else "degC",
-            )
-            for col in df.columns
-        ]
+        ts_list = []
+
+        for col in df.columns:
+            if col in VARIABLE_TYPES_AND_UNITS:
+                unit = VARIABLE_TYPES_AND_UNITS[col][0]
+                ts_list.append(
+                    Timeseries(
+                        ts=df[col],
+                        # Validation will be done in Pydantic
+                        variable=col,  # type: ignore[arg-type]
+                        location=data.get("location"),
+                        sensor=data.get("sensor"),
+                        # Validation will be done in Pydantic
+                        unit=unit,  # type: ignore[arg-type]
+                    )
+                )
+            else:
+                message = (
+                    "Unsupported variable: {col}. Please provide a valid variable type."
+                )
+                raise ValueError(message)
 
     return ts_list
