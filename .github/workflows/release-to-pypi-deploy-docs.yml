@@ -45,26 +45,3 @@ jobs:
           make build-and-publish
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-
-  deploy-docs:
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "."
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Deploy documentation
-        run: poetry run mkdocs gh-deploy --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
