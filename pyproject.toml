@@ -38,6 +38,7 @@ pandas-stubs = "^2.2.2.240807"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.5.34"
 mkdocstrings-python = "^1.11.1"
+mkdocs-autorefs = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

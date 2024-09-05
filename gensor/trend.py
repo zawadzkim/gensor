@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from .dtypes import Timeseries
 
 
-def trend_analysis(ts: Timeseries, plot=True) -> None:
+def trend_analysis(ts: Timeseries, plot: bool = True) -> None:
     time_numeric = np.arange(len(ts.timeseries))
 
     # Perform linear regression using numpy's polyfit

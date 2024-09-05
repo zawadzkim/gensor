@@ -58,7 +58,7 @@ class Transform:
     def difference(self, **kwargs: int) -> tuple[Series, str]:
         """Difference the time series data.
 
-        Args:
+        Keword Arguments:
             periods (int): The number of periods to shift. Defaults to 1.
 
         Returns:
@@ -90,7 +90,7 @@ class Transform:
         """Apply the Box-Cox transformation to the time series data. Only works
             for all positive datasets!
 
-        Args:
+        Keyword Arguments:
             lmbda (float): The transformation parameter. Defaults to 0.
 
         Returns:
