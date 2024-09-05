@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gensor"
-version = "0.0.3"
+version = "0.0.4"
 description = "Library for handling groundwater sensor data."
 authors = ["Mateusz Zawadzki <zawadzkimat@outlook.com>"]
 repository = "https://github.com/zawadzkim/gensor"
