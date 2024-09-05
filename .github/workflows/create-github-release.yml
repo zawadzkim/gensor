@@ -1,0 +1,42 @@
+name: Create GitHub Release
+
+on:
+  workflow_run:
+    workflows: ["Quality control"]
+    types:
+      - completed
+
+jobs:
+  create-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Create version tag
+        run: |
+          # You can implement logic here to set the version number automatically
+          VERSION=$(date +'%Y.%m.%d')
+          echo "Creating new tag: v$VERSION"
+          git tag v$VERSION
+          git push origin v$VERSION
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: "Release v${{ steps.version.outputs.VERSION }}"
+          body: |
+            Automated release created after successful quality control checks.
+            - Version: v${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
