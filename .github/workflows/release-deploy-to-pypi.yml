@@ -1,14 +1,10 @@
-name: Release to PyPi and Deploy Docs
+name: Create GitHub Release and Deploy to PyPi
 
 on:
   workflow_run:
     workflows: ["Quality control"]
     types:
       - completed
-
-permissions:
-  contents: write
-  pages: write
 
 jobs:
   publish:
@@ -24,7 +20,7 @@ jobs:
         id: extract_version
         run: |
           version=$(poetry version -s)
-          echo "VERSION=$version" >> $GITHUB_ENV  # Store the version in GITHUB_ENV for later use
+          echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         id: create_release

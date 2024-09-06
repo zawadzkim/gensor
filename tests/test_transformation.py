@@ -12,14 +12,14 @@ from sklearn.preprocessing import (
 from gensor import Timeseries
 
 # =================== Test Timeseries methods ================================
-dates = pd.date_range(start="2023-01-01", periods=10, freq="D")
+dates = pd.date_range(start="2023-01-01", periods=10, freq="D", tz="UTC")
 values = np.arange(1, 11)
-ts = Timeseries(ts=pd.Series(values, index=dates), variable="temperature", unit="degC")
+ts = Timeseries(ts=pd.Series(values, index=dates), variable="temperature", unit="degc")
 
 
 def test_resample():
     ts = Timeseries(
-        ts=pd.Series(values, index=dates), variable="temperature", unit="degC"
+        ts=pd.Series(values, index=dates), variable="temperature", unit="degc"
     )
 
     resampled_ts = ts.resample("2D")
