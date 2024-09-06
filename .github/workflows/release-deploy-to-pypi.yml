@@ -6,6 +6,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -32,7 +35,6 @@ jobs:
           release_name: Release v${{ env.VERSION }}
           draft: false
           prerelease: false
-          generate_release_notes: true
 
       - name: Build and publish to PyPi
         run: |
