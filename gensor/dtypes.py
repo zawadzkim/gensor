@@ -1,12 +1,24 @@
+"""
+!!! warning
+
+    Whenever Timeseries objects are created via read_from_csv and use a parser (e.g.,
+    'vanessen'), the timestamps are localized and converted to UTC. Therefore, if the
+    user creates his own timeseries outside the read_from_csv, they should ensure that
+    the timestamps are in UTC format.
+"""
+
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import pandas as pd
 import pandera as pa
 import pydantic as pyd
 from matplotlib import pyplot as plt
+from sqlalchemy import Table
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from .db import DatabaseConnection
 from .exceptions import IndexOutOfRangeError, TimeseriesNotFound, TimeseriesUnequal
@@ -14,14 +26,14 @@ from .preprocessing import OutlierDetection, Transform
 
 ts_schema = pa.SeriesSchema(
     float,
-    index=pa.Index(pa.DateTime, coerce=True),
+    index=pa.Index(pd.DatetimeTZDtype(tz="UTC"), coerce=False),
     coerce=True,
 )
 
 VARIABLE_TYPES_AND_UNITS = {
-    "temperature": ["degC"],
-    "pressure": ["cmH2O", "mmH2O"],
-    "conductivity": ["mS/cm"],
+    "temperature": ["degc"],
+    "pressure": ["cmh2o", "mmh2o"],
+    "conductivity": ["ms/cm"],
     "flux": ["m/s"],
     "head": ["m asl"],
     "depth": ["m"],
@@ -63,7 +75,7 @@ class Timeseries(pyd.BaseModel):
     variable: Literal[
         "temperature", "pressure", "conductivity", "flux", "head", "depth"
     ]
-    unit: Literal["degC", "cmH2O", "mS/cm", "m/s", "m asl", "m"]
+    unit: Literal["degc", "cmh2o", "ms/cm", "m/s", "m asl", "m"]
     location: str | None = None
     sensor: str | None = None
     sensor_alt: float | None = None
@@ -213,25 +225,41 @@ class Timeseries(pyd.BaseModel):
     def to_sql(self, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
 
-        Normally the upload of the data with SQLAlchemy ORM would require creation of LoggerRecords instances,
-        but since the on_conflict_do_nothing clause is is used to avoid inserting duplicate rows, the
-        data has to be uploaded as a list of dictionaries.
+        The Timeseries data is uploaded to the SQL database by using the pandas
+        `to_sql` method.
 
         Args:
-            db (DatabaseConnection): The database connection object (see gwlogger.db.connection).
+            db (DatabaseConnection): The database connection object.
 
         Returns:
             str: A message indicating the number of rows inserted into the database.
         """
-        schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}"
-        if db.engine is not None:
-            with db.engine.connect() as con:
-                self.ts.to_sql(
-                    name=schema_name, con=con, if_exists="append", index=False
-                )
+        schema_name = (
+            f"{self.location}_{self.sensor}_{self.variable}_{self.unit}".lower()
+        )
+
+        if isinstance(self.ts.index, pd.DatetimeIndex):
+            utc_index = (
+                self.ts.index.tz_convert("UTC")
+                if self.ts.index.tz is not None  # tzinfo becomes tz for DatetimeIndex
+                else self.ts.index
+            )
         else:
-            message = "Database engine is not initialized."
-            raise ValueError(message)
+            message = "The index is not a DatetimeIndex and cannot be converted to UTC."
+            raise TypeError(message)
+
+        series_as_records = list(
+            zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
+        )
+
+        with db as con:
+            schema = db.create_table(schema_name, self.variable)
+            if isinstance(schema, Table):
+                stmt = sqlite_insert(schema).values(series_as_records)
+                stmt = stmt.on_conflict_do_nothing(index_elements=["timestamp"])
+
+                con.execute(stmt)
+                con.commit()
 
         return f"{schema_name} table updated."
 
@@ -258,7 +286,7 @@ class Timeseries(pyd.BaseModel):
         ax.plot(
             self.ts.index,
             self.ts,
-            label=f"{self.variable} ({self.unit})",
+            label=f"{self.location} ({self.sensor})",
             **plot_kwargs,
         )
 
@@ -329,7 +357,7 @@ class Dataset(pyd.BaseModel):
         """List all unique locations in the dataset."""
         return [ts.location for ts in self.timeseries if ts is not None]
 
-    def add(self, other: Timeseries | list[Timeseries]) -> None:
+    def add(self, other: Timeseries | list[Timeseries] | Self) -> None:
         """Appends a new series to the Dataset or merges series if an equal
         one exists.
 
@@ -342,8 +370,13 @@ class Dataset(pyd.BaseModel):
         """
         if isinstance(other, list):
             for ts in other:
-                self._add_single_timeseries(ts)
-        else:
+                if isinstance(ts, Timeseries):
+                    self._add_single_timeseries(ts)
+        elif isinstance(other, Dataset):
+            for ts in other.timeseries:  # type: ignore[assignment]
+                if isinstance(ts, Timeseries):
+                    self._add_single_timeseries(ts)
+        elif isinstance(other, Timeseries):
             self._add_single_timeseries(other)
 
         return
@@ -395,9 +428,38 @@ class Dataset(pyd.BaseModel):
 
         return self.model_copy(update={"timeseries": matching_timeseries})
 
+    def to_sql(self, db: DatabaseConnection) -> None:
+        for ts in self.timeseries:
+            if ts:
+                ts.to_sql(db)
+        return
+
+    def plot(self, include_outliers: bool = False) -> None:
+        """Plots the timeseries data, grouping by variable type.
+
+        Args:
+            include_outliers (bool): Whether to include outliers in the plot.
+        """
+        # Group timeseries by variable
+        grouped_ts = defaultdict(list)
+        for ts in self.timeseries:
+            if ts:
+                grouped_ts[ts.variable].append(ts)
+
+        # Create a plot for each group of timeseries with the same variable
+        for variable, ts_list in grouped_ts.items():
+            fig, ax = plt.subplots(figsize=(10, 5))
+            for ts in ts_list:
+                ts.plot(include_outliers=include_outliers, ax=ax)
+
+            ax.set_title(f"Timeseries for {variable.capitalize()}")
+            plt.show()
+
+        return
+
     # def align(self,
-    #           freq: str = 'h',
-    #           inplace: bool = True):
+    #             freq: str = 'h',
+    #             inplace: bool = True):
     #     """Aligns the timeseries to a common time axis.
 
     #     Args:
@@ -406,7 +468,7 @@ class Dataset(pyd.BaseModel):
     #     """
 
     #     index_sets = [set(serie._resample(freq).index)
-    #                   for serie in self.timeseries]
+    #                     for serie in self.timeseries]
 
     #     # Find the intersection of all index sets to get the common dates
     #     common_dates = set.intersection(*index_sets)
@@ -430,21 +492,3 @@ class Dataset(pyd.BaseModel):
     #         aligned_series = Dataset(aligned_series)
 
     #     return aligned_series
-
-
-#     def plot(self, stations: list[str] | None = None):
-#         """Plots the timeseries data.
-
-#         Args:
-#             ts (Timeseries): The timeseries to plot.
-#         """
-#         plt.figure(figsize=(10, 5))
-
-#         for ts in self.timeseries:
-#             plt.plot(ts.timeseries.index, ts.timeseries,
-#                      label=f'{ts.measurement_type} at {ts.station}')
-#         plt.xlabel('Time')
-#         plt.ylabel('Value')
-#         plt.title('Timeseries data')
-#         plt.legend()
-#         plt.show()

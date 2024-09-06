@@ -1,73 +1,8 @@
-"""TODO: implement test for saving to sql"""
-
-from pathlib import Path
-
 import pandas as pd
 import pytest
 from pandera.errors import SchemaError
 
 from gensor import Timeseries
-
-
-@pytest.fixture
-def simple_timeseries():
-    """Create a simple Timeseries for testing."""
-    data = pd.Series(
-        [1.0, 2.0, 3.0], index=pd.date_range("2024-01-01", periods=3, freq="h")
-    )
-    return Timeseries(
-        ts=data,
-        variable="pressure",
-        unit="cmH2O",
-        location="Station A",
-        sensor="Sensor 1",
-        sensor_alt=100,
-    )
-
-
-@pytest.fixture
-def timeseries_with_datetime():
-    file_path = Path("tests/.data/temperature_data_with_time.csv")
-    df = pd.read_csv(file_path, parse_dates=["timestamp"], index_col="timestamp")
-
-    ts = df["temperature"]
-    return Timeseries(
-        ts=ts,
-        variable="temperature",
-        location="Station1",
-        sensor="Sensor123",
-        unit="degC",
-    )
-
-
-@pytest.fixture
-def timeseries_with_datetime_other():
-    file_path = Path("tests/.data/temperature_data_with_time_other.csv")
-    df = pd.read_csv(file_path, parse_dates=["timestamp"], index_col="timestamp")
-
-    ts = df["temperature"]
-    return Timeseries(
-        ts=ts,
-        variable="temperature",
-        location="Station1",
-        sensor="Sensor123",
-        unit="degC",
-    )
-
-
-@pytest.fixture
-def timeseries_with_date():
-    file_path = Path("tests/.data/temperature_data_without_time.csv")
-    df = pd.read_csv(file_path, parse_dates=["date"], index_col="date")
-
-    ts = df["temperature"]
-    return Timeseries(
-        ts=ts,
-        variable="temperature",
-        location="Station2",
-        sensor="Sensor456",
-        unit="degC",
-    )
 
 
 def test_timeseries_with_time(timeseries_with_datetime):

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import chardet
-import pytz
+from dateutil import tz
 from pandas import DataFrame, read_csv, to_datetime
 
 from ..dtypes import VARIABLE_TYPES_AND_UNITS, Timeseries
@@ -28,25 +28,20 @@ def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
     return result["encoding"] or "utf-8"
 
 
-def handle_timestamps(df: DataFrame, tz: str) -> DataFrame:
-    """Converts the timestamps in the dataframe to the specified timezone.
-
-    The timezone is obtained from the file metadata. If the timezone is UTC, the offset is extracted
-    and the timestamps are converted to the corresponding timezone. If the timezone is not UTC, the
-    timestamps are converted to UTC and then to the specified timezone.
+def handle_timestamps(df: DataFrame, tz_string: str) -> DataFrame:
+    """Converts timestamps in the dataframe to the specified timezone (e.g., 'UTC+1').
 
     Args:
-        df (pd.DataFrame): The dataframe with the data.
-        tz (str): The timezone string obtained from the file metadata.
+        df (pd.DataFrame): The dataframe with timestamps.
+        tz_string (str): A timezone string like 'UTC+1' or 'UTC-5'.
+
+    Returns:
+        pd.DataFrame: The dataframe with timestamps converted to UTC.
     """
+    timezone = tz.gettz(tz_string)
 
-    if tz.startswith("UTC"):
-        offset_hours = int(tz[3:])
-        timezone = pytz.FixedOffset(offset_hours * 60)
-    else:
-        timezone = pytz.UTC
-
-    df.index = to_datetime(df.index).tz_localize("UTC").tz_convert(timezone)
+    df.index = to_datetime(df.index).tz_localize(timezone)
+    df.index = df.index.tz_convert("UTC")
 
     return df
 
