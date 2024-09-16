@@ -29,11 +29,11 @@ pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
 deptry = "^0.16.2"
 mypy = "^1.5.1"
-pre-commit = "^3.4.0"
 tox = "^4.11.1"
 jupyter = "^1.1.1"
 pandas-stubs = "^2.2.2.240807"
 nbstripout = "^0.7.1"
+pre-commit = "^3.8.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
