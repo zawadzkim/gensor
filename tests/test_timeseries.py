@@ -11,6 +11,8 @@ def test_timeseries_with_time(timeseries_with_datetime):
     assert isinstance(
         timeseries_with_datetime.ts.index, pd.DatetimeIndex
     ), "Index is not of datetime type"
+    assert timeseries_with_datetime.start == pd.Timestamp("2024-09-01 00:00:00+00:00")
+    assert timeseries_with_datetime.end == pd.Timestamp("2024-09-03 01:00:00+00:00")
 
 
 def test_timeseries_with_date(timeseries_with_date):

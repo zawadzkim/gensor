@@ -82,6 +82,16 @@ class Timeseries(pyd.BaseModel):
     outliers: pd.Series | None = pyd.Field(default=None, repr=False)
     transformation: Any = pyd.Field(default=None, repr=False)
 
+    @pyd.computed_field()  # type: ignore[prop-decorator]
+    @property
+    def start(self) -> pd.Timestamp | Any:
+        return self.ts.index.min()
+
+    @pyd.computed_field()  # type: ignore[prop-decorator]
+    @property
+    def end(self) -> pd.Timestamp | Any:
+        return self.ts.index.max()
+
     def __eq__(self, other: object) -> bool:
         """Check equality based on location, sensor, and variable."""
         if not isinstance(other, Timeseries):
@@ -92,6 +102,7 @@ class Timeseries(pyd.BaseModel):
             and self.unit == other.unit
             and self.location == other.location
             and self.sensor == other.sensor
+            and self.start == other.start
         )
 
     def __getattr__(self, attr: Any) -> Any:
@@ -226,7 +237,8 @@ class Timeseries(pyd.BaseModel):
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
 
         The Timeseries data is uploaded to the SQL database by using the pandas
-        `to_sql` method.
+        `to_sql` method. Additionally, metadata about the timeseries is stored in the
+        'timeseries_metadata' table.
 
         Args:
             db (DatabaseConnection): The database connection object.
@@ -234,34 +246,66 @@ class Timeseries(pyd.BaseModel):
         Returns:
             str: A message indicating the number of rows inserted into the database.
         """
-        schema_name = (
-            f"{self.location}_{self.sensor}_{self.variable}_{self.unit}".lower()
-        )
+        # Format the start timestamp as 'YYYYMMDDHHMMSS'
+        timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
 
+        # Construct the schema name using the location, sensor, variable, unit, and timestamp
+        schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}_{timestamp_start_fmt}".lower()
+
+        # Ensure the index is a pandas DatetimeIndex
         if isinstance(self.ts.index, pd.DatetimeIndex):
             utc_index = (
                 self.ts.index.tz_convert("UTC")
-                if self.ts.index.tz is not None  # tzinfo becomes tz for DatetimeIndex
+                if self.ts.index.tz is not None
                 else self.ts.index
             )
         else:
             message = "The index is not a DatetimeIndex and cannot be converted to UTC."
             raise TypeError(message)
 
+        # Prepare the timeseries data as records for insertion
         series_as_records = list(
             zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
         )
 
         with db as con:
+            # Create the timeseries table if it doesn't exist
             schema = db.create_table(schema_name, self.variable)
+
+            # Ensure that the timeseries_metadata table exists
+            metadata_schema = db.metadata.tables["__timeseries_metadata__"]
+
             if isinstance(schema, Table):
+                # Insert the timeseries data
                 stmt = sqlite_insert(schema).values(series_as_records)
                 stmt = stmt.on_conflict_do_nothing(index_elements=["timestamp"])
-
                 con.execute(stmt)
                 con.commit()
 
-        return f"{schema_name} table updated."
+                metadata_stmt = sqlite_insert(metadata_schema).values(
+                    table_name=schema_name,
+                    location=self.location,
+                    sensor=self.sensor,
+                    variable=self.variable,
+                    unit=self.unit,
+                    logger_alt=self.sensor_alt,
+                    location_alt=self.sensor_alt,
+                    timestamp_start=timestamp_start_fmt,
+                    timestamp_end=self.end.strftime("%Y%m%d%H%M%S"),
+                )
+
+                metadata_stmt = metadata_stmt.on_conflict_do_update(
+                    index_elements=["table_name"],
+                    set_={
+                        "timestamp_start": timestamp_start_fmt,
+                        "timestamp_end": self.end.strftime("%Y%m%d%H%M%S"),
+                    },
+                )
+
+                con.execute(metadata_stmt)
+                con.commit()
+
+        return f"{schema_name} table and metadata updated."
 
     def plot(
         self, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any

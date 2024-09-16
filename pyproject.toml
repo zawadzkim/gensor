@@ -33,6 +33,7 @@ pre-commit = "^3.4.0"
 tox = "^4.11.1"
 jupyter = "^1.1.1"
 pandas-stubs = "^2.2.2.240807"
+nbstripout = "^0.7.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
@@ -63,6 +64,7 @@ testpaths = ["tests"]
 target-version = "py311"
 line-length = 88
 fix = true
+exclude = ["*.csv"]
 
 [tool.ruff.lint]
 select = [

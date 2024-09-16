@@ -180,9 +180,10 @@ def missing_sensor_alt_timeseries():
 
 
 @pytest.fixture
-def timeseries() -> Timeseries:
+def baro_timeseries() -> Timeseries:
     """Actual barometric pressure timeseries from a van Essen Diver. This test also
     relies on the read_from_csv function from gensor.getters module.
     """
-    file_path = Path("tests/.data/BY222_Barodiver_TEST.CSV")
-    return read_from_csv(path=file_path, file_format="vanessen")
+    from gensor.data import baro
+
+    return read_from_csv(path=baro, file_format="vanessen")

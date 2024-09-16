@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.9-slim-buster
+FROM python:3.11-slim-bookworm
 
-ENV POETRY_VERSION=1.4 \
+ENV POETRY_VERSION=1.8 \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry
@@ -17,5 +17,3 @@ RUN poetry install --no-interaction --no-ansi --no-root --no-dev
 
 # Copy Python code to the Docker image
 COPY gensor /code/gensor/
-
-CMD [ "python", "gensor/foo.py"]
