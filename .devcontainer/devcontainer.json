@@ -17,7 +17,9 @@
             "extensions": [
                 "ms-python.python",
                 "editorconfig.editorconfig",
-                "ms-vscode.makefile-tools"
+                "ms-vscode.makefile-tools",
+                "ms-python.python",
+                "ms-toolsai.jupyter"
             ],
             "settings": {
                 "python.testing.pytestArgs": ["tests"],

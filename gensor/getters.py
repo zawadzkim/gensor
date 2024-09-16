@@ -30,17 +30,24 @@ def read_from_csv(
 
     parsers = {
         "vanessen": parse_vanessen_csv,
+        # more parser to be implemented
     }
 
     if not isinstance(path, Path):
         message = "The path argument must be a Path object."
         raise TypeError(message)
 
-    if path.is_dir() and not any(path.iterdir()):
+    if path.is_dir() and not any(
+        file.is_file() and file.suffix == ".csv" for file in path.iterdir()
+    ):
         raise NoFilesToLoad()
 
     files = (
-        [file for file in path.iterdir() if file.is_file()] if path.is_dir() else [path]
+        [file for file in path.iterdir() if file.is_file() and file.suffix == ".csv"]
+        if path.is_dir()
+        else [path]
+        if path.suffix == ".csv"
+        else []
     )
 
     parser = parsers[file_format]
