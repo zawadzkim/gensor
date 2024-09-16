@@ -18,8 +18,8 @@ def test_db_creation_default_location(db):
     ).exists(), "Database file should be created in the default location."
 
 
-def test_db_create_table(db, timeseries):
-    ts = timeseries[0]
+def test_db_create_table(db, baro_timeseries):
+    ts = baro_timeseries[0]
     timestamp_start_fmt = ts.start.strftime("%Y%m%d%H%M%S")
     schema_name = f"{ts.location}_{ts.sensor}_{ts.variable}_{ts.unit}_{timestamp_start_fmt}".lower()
 
@@ -40,9 +40,9 @@ def test_db_create_table(db, timeseries):
         ), "There should still be 2 tables in the database. Creation of the second one should be skipped"
 
 
-def test_save_and_load_timeseries(db, timeseries):
+def test_save_and_load_timeseries(db, baro_timeseries):
     """Test saving and loading Timeseries from an in-memory database."""
-    ts = timeseries[0]
+    ts = baro_timeseries[0]
 
     message = ts.to_sql(db)
     assert "table and metadata updated" in message
@@ -60,10 +60,10 @@ def test_save_and_load_timeseries(db, timeseries):
     assert ts == loaded_ts, "Loaded timeseries should match the saved timeseries"
 
 
-def test_save_and_load_dataset(db, timeseries):
+def test_save_and_load_dataset(db, baro_timeseries):
     """Test saving and loading Dataset from the database."""
 
-    timeseries.to_sql(db)
+    baro_timeseries.to_sql(db)
 
     read_from_sql(
         db=db,
