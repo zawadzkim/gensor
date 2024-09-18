@@ -1,18 +1,16 @@
-from pathlib import Path
-from pandas import DataFrame, to_datetime, read_csv
-
-from dateutil import tz
-from io import StringIO
-import chardet
 import re
+from io import StringIO
+from pathlib import Path
+
+import chardet
+from dateutil import tz
+from pandas import DataFrame, read_csv, to_datetime
 
 
-def get_data(text: str, data_start: str, data_end: str, column_names: list) -> DataFrame:
-    data_io = StringIO(
-        text[
-            text.index(data_start): text.index(data_end)
-        ]
-    )
+def get_data(
+    text: str, data_start: str, data_end: str, column_names: list
+) -> DataFrame:
+    data_io = StringIO(text[text.index(data_start) : text.index(data_end)])
 
     df = read_csv(
         data_io, skiprows=1, header=None, names=column_names, index_col="timestamp"
@@ -29,7 +27,7 @@ def get_metadata(text: str, patterns: dict) -> dict:
         match = re.search(v, text)
         metadata[k] = match.group() if match else None
 
-    if metadata['sensor'] is None or metadata['location'] is None:
+    if metadata["sensor"] is None or metadata["location"] is None:
         return {}
 
     return metadata

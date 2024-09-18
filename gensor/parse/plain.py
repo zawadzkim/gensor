@@ -1,9 +1,10 @@
-from .utils import detect_encoding, handle_timestamps
-from typing import Any
-from ..dtypes import Timeseries, VARIABLE_TYPES_AND_UNITS
 from pathlib import Path
+from typing import Any
 
 from pandas import read_csv
+
+from ..dtypes import VARIABLE_TYPES_AND_UNITS, Timeseries
+from .utils import detect_encoding, handle_timestamps
 
 
 def parse_plain(path: Path, **kwargs: Any) -> list[Timeseries]:
@@ -16,13 +17,21 @@ def parse_plain(path: Path, **kwargs: Any) -> list[Timeseries]:
         list: A list of Timeseries objects.
     """
 
-    column_names = kwargs.get(
-        "col_names", ["timestamp", "pressure", "temperature"])
+    column_names = kwargs.get("col_names", ["timestamp", "pressure", "temperature"])
 
     encoding = detect_encoding(path, num_bytes=10_000)
 
-    df = read_csv(path, encoding=encoding, skipfooter=1,
-                  skip_blank_lines=True, header=None, skiprows=1, index_col='timestamp', names=column_names, engine='python')
+    df = read_csv(
+        path,
+        encoding=encoding,
+        skipfooter=1,
+        skip_blank_lines=True,
+        header=None,
+        skiprows=1,
+        index_col="timestamp",
+        names=column_names,
+        engine="python",
+    )
 
     df = handle_timestamps(df, kwargs.get("timezone", "UTC"))
 
