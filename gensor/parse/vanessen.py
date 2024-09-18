@@ -1,49 +1,10 @@
 """Logic parsing CSV files from van Essen Instruments Divers."""
 
-import re
-from io import StringIO
 from pathlib import Path
 from typing import Any
 
-import chardet
-from dateutil import tz
-from pandas import DataFrame, read_csv, to_datetime
-
 from ..dtypes import VARIABLE_TYPES_AND_UNITS, Timeseries
-
-
-def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
-    """Detect the encoding of a file using chardet.
-
-    Args:
-        path (Path): The path to the file.
-        num_bytes (int): Number of bytes to read for encoding detection (default is 1024).
-
-    Returns:
-        str: The detected encoding of the file.
-    """
-    with path.open("rb") as f:
-        raw_data = f.read(num_bytes)
-    result = chardet.detect(raw_data)
-    return result["encoding"] or "utf-8"
-
-
-def handle_timestamps(df: DataFrame, tz_string: str) -> DataFrame:
-    """Converts timestamps in the dataframe to the specified timezone (e.g., 'UTC+1').
-
-    Args:
-        df (pd.DataFrame): The dataframe with timestamps.
-        tz_string (str): A timezone string like 'UTC+1' or 'UTC-5'.
-
-    Returns:
-        pd.DataFrame: The dataframe with timestamps converted to UTC.
-    """
-    timezone = tz.gettz(tz_string)
-
-    df.index = to_datetime(df.index).tz_localize(timezone)
-    df.index = df.index.tz_convert("UTC")
-
-    return df
+from .utils import detect_encoding, get_data, get_metadata, handle_timestamps
 
 
 def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
@@ -71,11 +32,12 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
         list: A list of Timeseries objects.
     """
 
-    data = {
+    patterns = {
         "sensor": kwargs.get("serial_number_pattern", r"[A-Za-z]{2}\d{3,4}"),
         "location": kwargs.get(
             "location_pattern", r"[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver"
         ),
+        "timezone": kwargs.get("timezone_pattern", r"UTC[+-]?\d+"),
     }
 
     column_names = kwargs.get("col_names", ["timestamp", "pressure", "temperature"])
@@ -85,35 +47,18 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
     with path.open(mode="r", encoding=encoding) as f:
         text = f.read()
 
-        try:
-            data = {
-                k: (match.group() if (match := re.search(v, text)) else None)
-                for k, v in data.items()
-            }
+        metadata = get_metadata(text, patterns)
 
-        except AttributeError:
-            print(
-                f"Skipping file {path} due to missing patterns. If this is not expected, please provide the correct patterns."
-            )
+        if not metadata:
+            print(f"Skipping file {path} due to missing metadata.")
             return []
 
-        data_io = StringIO(
-            text[
-                text.index("Date/time") : text.index(
-                    "END OF DATA FILE OF DATALOGGER FOR WINDOWS"
-                )
-            ]
-        )
+        data_start = "Date/time"
+        data_end = "END OF DATA FILE"
 
-        df = read_csv(
-            data_io, skiprows=1, header=None, names=column_names, index_col="timestamp"
-        )
-        timezone_pattern = kwargs.get("timezone_pattern", r"UTC[+-]?\d+")
-        timezone_match = re.search(timezone_pattern, text)
+        df = get_data(text, data_start, data_end, column_names)
 
-        timezone = timezone_match.group() if timezone_match else "UTC"
-
-        df = handle_timestamps(df, timezone)
+        df = handle_timestamps(df, metadata.get("timezone", "UTC"))
 
         ts_list = []
 
@@ -125,8 +70,8 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
                         ts=df[col],
                         # Validation will be done in Pydantic
                         variable=col,  # type: ignore[arg-type]
-                        location=data.get("location"),
-                        sensor=data.get("sensor"),
+                        location=metadata.get("location"),
+                        sensor=metadata.get("sensor"),
                         # Validation will be done in Pydantic
                         unit=unit,  # type: ignore[arg-type]
                     )

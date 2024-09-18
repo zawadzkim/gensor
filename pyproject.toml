@@ -23,6 +23,8 @@ scikit-learn = "^1.5.1"
 sqlalchemy = "^2.0.32"
 pandas = "^2.2.2"
 python-dateutil = "^2.9.0.post0"
+statsmodels = "^0.14.3"
+seaborn = "^0.13.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -34,6 +36,7 @@ jupyter = "^1.1.1"
 pandas-stubs = "^2.2.2.240807"
 nbstripout = "^0.7.1"
 pre-commit = "^3.8.0"
+mkdocs-jupyter = "^0.25.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"

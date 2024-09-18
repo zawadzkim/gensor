@@ -152,23 +152,47 @@ class Transform:
 
 
 class OutlierDetection:
-    """Class for detecting outliers in time series data."""
+    """Detecting outliers in groundwater timeseries data.
+
+    Each method in this class returns a pandas.Series containing predicted outliers in
+    the dataset.
+
+    Methods:
+        iqr: Use interquartile range (IQR).
+        zscore: Use the z-score method.
+        isolation_forest: Using the isolation forest algorithm.
+        lof: Using the local outlier factor (LOF) method.
+    """
 
     def __init__(
         self,
         data: Series,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        rolling: bool = False,
+        window: int = 6,
         **kwargs: Any,
     ) -> None:
-        """Find outliers in a time series using the specified method."""
+        """Find outliers in a time series using the specified method, with an option for rolling window."""
+
+        if rolling:
+            # Apply method in a rolling window
+            self.outliers = data.rolling(window=window).apply(
+                lambda x: self._apply_method(x, method, **kwargs), raw=False
+            )
+        else:
+            # Apply method to the entire series
+            self.outliers = self._apply_method(data, method, **kwargs)
+
+    def _apply_method(self, data: Series, method: str, **kwargs: Any) -> Series:
+        """Helper method to apply the outlier detection method."""
         if method == "iqr":
-            self.outliers = self.iqr(data, **kwargs)
+            return self.iqr(data, **kwargs)
         elif method == "zscore":
-            self.outliers = self.zscore(data, **kwargs)
+            return self.zscore(data, **kwargs)
         elif method == "isolation_forest":
-            self.outliers = self.isolation_forest(data, **kwargs)
+            return self.isolation_forest(data, **kwargs)
         elif method == "lof":
-            self.outliers = self.lof(data, **kwargs)
+            return self.lof(data, **kwargs)
         else:
             raise NotImplementedError()
 
@@ -199,9 +223,9 @@ class OutlierDetection:
         return outliers
 
     def zscore(self, data: Series, **kwargs: float) -> Series:
-        """Detect outliers in a time series using the z-score method.
+        """Use the z-score method.
 
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:
@@ -221,9 +245,9 @@ class OutlierDetection:
         return outliers
 
     def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
-        """Detect outliers in a time series using the isolation forest method.
+        """Using the isolation forest algorithm.
 
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:
@@ -252,9 +276,9 @@ class OutlierDetection:
         return outliers
 
     def lof(self, data: Series, **kwargs: Any) -> Series:
-        """Detect outliers in a time series using the local outlier factor (LOF) method.
+        """Using the local outlier factor (LOF) method.
 
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:

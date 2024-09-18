@@ -7,4 +7,8 @@
 
 Python library allowing to load and analyze Groundwater sensor: G(s)ensor.
 
+!!! note
+
+    some note here
+
 Gensor provides functionality for loading sensor data from files. Among such variability of formats across the industry, parsers have to be implemented for each separately. For now only parser for van essen instruments is predefined.

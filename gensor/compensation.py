@@ -25,7 +25,7 @@ from typing import Any
 import pandas as pd
 import pydantic as pyd
 
-from .dtypes import Timeseries
+from .dtypes import Dataset, Timeseries
 from .exceptions import (
     InvalidMeasurementTypeError,
     MissingInputError,
@@ -111,19 +111,31 @@ class Compensator(pyd.BaseModel):
 
 
 def compensate(
-    ts: Timeseries,
+    raw: Timeseries | Dataset,
     barometric: Timeseries | float,
     drop_low_wc: bool,
     **kwargs: Any,
-) -> Timeseries | None:
+) -> Timeseries | Dataset:
     """Constructor for the Comensate class object.
 
     Parameters:
-        ts (Timeseries): Raw sensor timeseries
+        raw (Timeseries | Dataset): Raw sensor timeseries
         barometric (Timeseries | float): Barometric pressure timeseries or a single
             float value. If a float value is provided, it is assumed to be in cmH2O.
         drop_low_wc (bool): Whether to drop records where the absolute water column is
             less than or equal to the cutoff value. Defaults to True.
     """
-    comp = Compensator(ts=ts, barometric=barometric, drop_low_wc=drop_low_wc)
-    return comp.compensate(**kwargs)
+
+    def _compensate_one(raw: Timeseries) -> Timeseries:
+        comp = Compensator(ts=raw, barometric=barometric, drop_low_wc=drop_low_wc)
+        return comp.compensate(**kwargs)
+
+    if isinstance(raw, Timeseries):
+        return _compensate_one(raw)
+
+    elif isinstance(raw, Dataset):
+        compensated_series = []
+        for item in raw:
+            compensated_series.append(_compensate_one(item))
+
+        return raw.model_copy(update={"timeseries": compensated_series})

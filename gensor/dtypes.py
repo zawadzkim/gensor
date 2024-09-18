@@ -210,6 +210,7 @@ class Timeseries(pyd.BaseModel):
     def detect_outliers(
         self,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        rolling: bool = False,
         remove: bool = True,
         **kwargs: Any,
     ) -> Timeseries:
@@ -224,11 +225,11 @@ class Timeseries(pyd.BaseModel):
             Updated deep copy of the Timeseries object with outliers,
             optionally removed from the original timeseries.
         """
-        self.outliers = OutlierDetection(self.ts, method, **kwargs).outliers
+        self.outliers = OutlierDetection(self.ts, method, rolling, **kwargs).outliers
 
         if remove:
             filtered_ts = self.ts.drop(self.outliers.index)
-            return self.model_copy(update={"ts": filtered_ts})
+            return self.model_copy(update={"ts": filtered_ts}, deep=True)
 
         else:
             return self
@@ -438,9 +439,9 @@ class Dataset(pyd.BaseModel):
 
     def filter(
         self,
-        station: str | None = None,
-        sensor: str | None = None,
-        variable: str | None = None,
+        stations: str | list | None = None,
+        sensors: str | list | None = None,
+        variables: str | list | None = None,
     ) -> Timeseries | Dataset:
         """Return a Timeseries or a new Dataset filtered by station, sensor,
         and/or variable.
@@ -455,13 +456,22 @@ class Dataset(pyd.BaseModel):
                                    or a new Dataset if multiple matches are found.
         """
 
+        if isinstance(stations, str):
+            stations = [stations]
+
+        if isinstance(sensors, str):
+            sensors = [sensors]
+
+        if isinstance(variables, str):
+            variables = [variables]
+
         matching_timeseries = [
             ts
             for ts in self.timeseries
             if ts is not None
-            if (station is None or ts.location == station)
-            and (sensor is None or ts.sensor == sensor)
-            and (variable is None or ts.variable == variable)
+            if (stations is None or ts.location in stations)
+            and (sensors is None or ts.sensor in sensors)
+            and (variables is None or ts.variable in variables)
         ]
 
         if not matching_timeseries:

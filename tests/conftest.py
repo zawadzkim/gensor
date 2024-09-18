@@ -184,6 +184,18 @@ def baro_timeseries() -> Timeseries:
     """Actual barometric pressure timeseries from a van Essen Diver. This test also
     relies on the read_from_csv function from gensor.getters module.
     """
-    from gensor.data import baro
+    from gensor.testdata import baro
 
     return read_from_csv(path=baro, file_format="vanessen")
+
+
+@pytest.fixture
+def pb01a_plain_timeseries() -> Timeseries:
+    """Actual PB01A well timeseries from a van Essen Diver with metadata removed to simulate a plain file.
+    This test also relies on the read_from_csv function from gensor.getters module.
+    """
+    from gensor.testdata import pb02a_plain
+
+    return read_from_csv(
+        path=pb02a_plain, file_format="plain", location="PB01A", sensor="AV319"
+    )
