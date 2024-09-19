@@ -1,7 +1,7 @@
 """Class and methods for preprocessing groundwater level data."""
 
 from typing import Any, Literal
-
+import numba
 import numpy as np
 from pandas import Series
 from scipy import stats
@@ -174,29 +174,35 @@ class OutlierDetection:
     ) -> None:
         """Find outliers in a time series using the specified method, with an option for rolling window."""
 
-        if rolling:
-            # Apply method in a rolling window
-            self.outliers = data.rolling(window=window).apply(
-                lambda x: self._apply_method(x, method, **kwargs), raw=False
-            )
-        else:
-            # Apply method to the entire series
-            self.outliers = self._apply_method(data, method, **kwargs)
+        FUNCS = {
+            "iqr": self.iqr,
+            "zscore": self.zscore,
+            "isolation_forest": self.isolation_forest,
+            "lof": self.lof
+        }
 
-    def _apply_method(self, data: Series, method: str, **kwargs: Any) -> Series:
-        """Helper method to apply the outlier detection method."""
-        if method == "iqr":
-            return self.iqr(data, **kwargs)
-        elif method == "zscore":
-            return self.zscore(data, **kwargs)
-        elif method == "isolation_forest":
-            return self.isolation_forest(data, **kwargs)
-        elif method == "lof":
-            return self.lof(data, **kwargs)
-        else:
-            raise NotImplementedError()
+        method_func = FUNCS[method]
 
-    def iqr(self, data: Series, **kwargs: float) -> Series:
+        if method in ['iqr', 'zscore']:
+            y = kwargs.get("k", 1.5) if method == 'iqr' else kwargs.get(
+                "threshold", 3.0)
+            if rolling:
+                roll = data.rolling(window=window)
+                mask = roll.apply(
+                    lambda x: method_func(x, y),
+                    raw=True,
+                    engine='numba'
+                )
+            else:
+                mask = method_func(data.to_numpy(), y)
+
+        bool_mask = mask.astype(bool)
+        bool_mask_series = Series(bool_mask, index=data.index)
+        self.outliers = data[bool_mask_series]
+
+    @staticmethod
+    @numba.njit(nogil=True)
+    def iqr(data: np.ndarray, k: float) -> np.ndarray:
         """Use interquartile range (IQR).
 
         Parameters:
@@ -206,23 +212,21 @@ class OutlierDetection:
             k (float): The multiplier for the IQR to define the range. Defaults to 1.5.
 
         Returns:
-            pandas.Series: Outliers detected in the data.
+            np.ndarray: Binary mask representing the outliers as 1.
         """
 
-        k: float = kwargs.get("k", 1.5)
-
-        Q1 = data.quantile(0.25)
-        Q3 = data.quantile(0.75)
+        Q1 = np.percentile(data, 0.25)
+        Q3 = np.percentile(data, 0.75)
         IQR = Q3 - Q1
 
         lower_bound = Q1 - k * IQR
         upper_bound = Q3 + k * IQR
 
-        outliers = data[(data < lower_bound) | (data > upper_bound)]
+        return np.where((data < lower_bound) | (data > upper_bound), 1, 0)
 
-        return outliers
-
-    def zscore(self, data: Series, **kwargs: float) -> Series:
+    @staticmethod
+    @numba.njit(nogil=True)
+    def zscore(data: np.ndarray, threshold: float) -> np.ndarray:
         """Use the z-score method.
 
         Parameters:
@@ -232,17 +236,14 @@ class OutlierDetection:
             threshold (float): The threshold for the z-score method. Defaults to 3.0.
 
         Returns:
-            pandas.Series: Outliers detected in the data.
+            pandas.Series: Binary mask representing outliers.
         """
 
-        threshold = kwargs.get("threshold", 3.0)
+        mean = np.mean(data)
+        std_dev = np.std(data)
 
-        mean = data.mean()
-        std_dev = data.std()
-
-        outliers: Series = data[(data - mean).abs() > threshold * std_dev]
-
-        return outliers
+        z_scores = np.abs((data - mean) / std_dev)
+        return np.where(z_scores > threshold, 1, 0)
 
     def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
         """Using the isolation forest algorithm.

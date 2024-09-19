@@ -3,6 +3,7 @@ import pydantic as pyd
 import pytest
 
 from gensor.compensation import Compensator
+from gensor import compensate
 
 
 def test_compensator_with_valid_data(
@@ -11,11 +12,8 @@ def test_compensator_with_valid_data(
     expected_compensated_timeseries,
 ):
     """Test compensator with valid timeseries inputs."""
-    compensator = Compensator(
-        ts=valid_submerged_timeseries, barometric=valid_barometric_timeseries
-    )
-
-    compensated = compensator.compensate(alignment_period="h", threshold_wc=0.5)
+    compensated = compensate(raw=valid_submerged_timeseries,
+                             barometric=valid_barometric_timeseries)
 
     assert compensated is not None, "Compensation should return a valid Timeseries."
     assert (
@@ -45,7 +43,8 @@ def test_missing_sensor_alt(missing_sensor_alt_timeseries):
     barometric_value = 1010.0
 
     try:
-        Compensator(ts=missing_sensor_alt_timeseries, barometric=barometric_value)
+        Compensator(ts=missing_sensor_alt_timeseries,
+                    barometric=barometric_value)
     except pyd.ValidationError as exc:
         assert exc.errors()[0]["type"] == "value_error"
 
@@ -55,4 +54,5 @@ def test_invalid_barometric_timeseries_type(
 ):
     """Test that InvalidMeasurementTypeError is raised for wrong barometric timeseries type."""
     with pytest.raises(pyd.ValidationError):
-        Compensator(ts=valid_submerged_timeseries, barometric=invalid_timeseries_type)
+        Compensator(ts=valid_submerged_timeseries,
+                    barometric=invalid_timeseries_type)
