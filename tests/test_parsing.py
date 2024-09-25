@@ -13,5 +13,5 @@ def test_parsing_vanessen(baro_timeseries):
           pressure measurements"
 
 
-def test_plain_parser(pb01a_plain_timeseries):
-    dataset = pb01a_plain_timeseries
+def test_plain_parser(pb02a_plain_timeseries):
+    dataset = pb02a_plain_timeseries
