@@ -21,13 +21,9 @@ def test_create_timeseries(synthetic_submerged_timeseries):
 
     assert isinstance(ts.ts, pd.Series)
     assert ts.variable == "pressure"
-    assert isinstance(
-        ts.ts.index, pd.DatetimeIndex
-    ), "Index is not of datetime type"
-    assert ts.start == pd.Timestamp(
-        "2024-01-01 00:00:00+00:00")
-    assert ts.end == pd.Timestamp(
-        "2024-01-01 02:00:00+00:00")
+    assert isinstance(ts.ts.index, pd.DatetimeIndex), "Index is not of datetime type"
+    assert ts.start == pd.Timestamp("2024-01-01 00:00:00+00:00")
+    assert ts.end == pd.Timestamp("2024-01-01 02:00:00+00:00")
 
 
 def test_timeseries_invalid_schema(synthetic_timeseries_with_none):
@@ -43,13 +39,16 @@ def test_timeseries_invalid_schema(synthetic_timeseries_with_none):
             sensor_alt=100,
         )
 
+
 # ============================= Test Timeseries functions ==============================
 
 
-def test_adding_timeseries(synthetic_submerged_timeseries,
-                           extended_synthetic_submerged_pressure_timeseries):
+def test_adding_timeseries(
+    synthetic_submerged_timeseries, extended_synthetic_submerged_pressure_timeseries
+):
     new_ts = synthetic_submerged_timeseries.concatenate(
-        extended_synthetic_submerged_pressure_timeseries)
+        extended_synthetic_submerged_pressure_timeseries
+    )
 
     # The new Series should be exactly 3 records longer
     assert (
@@ -59,7 +58,8 @@ def test_adding_timeseries(synthetic_submerged_timeseries,
 
 def test_adding_timeseries_not_equal(synthetic_submerged_timeseries):
     unequal_serie = synthetic_submerged_timeseries.model_copy(
-        update={"location": "Station2"})
+        update={"location": "Station2"}
+    )
 
     with pytest.raises(ValueError):
         synthetic_submerged_timeseries.concatenate(unequal_serie)

@@ -14,6 +14,7 @@ Fixtures:
     pb01a_timeseries: Provides actual well Timeseries data from a van Essen Diver for location PB01A, read from a CSV.
     pb02a_plain_timeseries: Provides well Timeseries data from a van Essen Diver (PB02A) with metadata removed to simulate a plain file, read from a CSV.
 """
+
 import os
 
 import pandas as pd
@@ -28,14 +29,14 @@ from gensor.db import DatabaseConnection
 @pytest.fixture
 def db(tmp_path):
     """Fixture to create a temporary database file for each test."""
-    db_connection = DatabaseConnection(
-        db_directory=tmp_path, db_name="test_db.sqlite")
+    db_connection = DatabaseConnection(db_directory=tmp_path, db_name="test_db.sqlite")
 
     yield db_connection
 
     db_path = tmp_path / "test_db.sqlite"
     if db_path.exists():
         os.remove(db_path)
+
 
 # ================================ Synthetic timeseries ================================
 
@@ -138,6 +139,7 @@ def synthetic_temperature_timeseries():
         location="Station B",
         sensor="Sensor 2",
     )
+
 
 # ============================ Sample timeseries van Essen =============================
 
