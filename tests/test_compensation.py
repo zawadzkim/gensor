@@ -2,22 +2,23 @@ import pandas as pd
 import pydantic as pyd
 import pytest
 
-from gensor.compensation import Compensator
+from gensor import Timeseries, compensate
 
 
 def test_compensator_with_valid_data(
-    valid_submerged_timeseries,
-    valid_barometric_timeseries,
-    expected_compensated_timeseries,
+    synthetic_submerged_timeseries,
+    synthetic_barometric_pressure_timeseries,
+    synthetic_expected_compensated_timeseries,
 ):
     """Test compensator with valid timeseries inputs."""
-    compensator = Compensator(
-        ts=valid_submerged_timeseries, barometric=valid_barometric_timeseries
+    compensated = compensate(
+        raw=synthetic_submerged_timeseries,
+        barometric=synthetic_barometric_pressure_timeseries,
     )
 
-    compensated = compensator.compensate(alignment_period="h", threshold_wc=0.5)
-
-    assert compensated is not None, "Compensation should return a valid Timeseries."
+    assert isinstance(
+        compensated, Timeseries
+    ), "Compensation should return a valid Timeseries."
     assert (
         compensated.variable == "head"
     ), "Compensated Timeseries should have type 'head'."
@@ -26,33 +27,76 @@ def test_compensator_with_valid_data(
     ), "Compensated Timeseries should have unit 'm asl'."
 
     pd.testing.assert_series_equal(
-        compensated.ts, expected_compensated_timeseries.ts, check_exact=False, rtol=1e-5
+        compensated.ts,
+        synthetic_expected_compensated_timeseries.ts,
+        check_exact=False,
+        rtol=1e-5,
     )
 
 
-def test_invalid_timeseries_type(invalid_timeseries_type):
+def test_compensation_with_baro_as_float(
+    synthetic_submerged_timeseries,
+    synthetic_expected_compensated_timeseries,
+    barometric_value,
+):
+    compensated = compensate(
+        raw=synthetic_submerged_timeseries, barometric=barometric_value
+    )
+
+    assert isinstance(
+        compensated, Timeseries
+    ), "Compensation should return a valid Timeseries."
+    assert (
+        compensated.variable == "head"
+    ), "Compensated Timeseries should have type 'head'."
+    assert (
+        compensated.unit == "m asl"
+    ), "Compensated Timeseries should have unit 'm asl'."
+
+    pd.testing.assert_series_equal(
+        compensated.ts,
+        synthetic_expected_compensated_timeseries.ts,
+        check_exact=False,
+        rtol=1e-5,
+    )
+
+
+def test_invalid_raw_timeseries_type(
+    synthetic_temperature_timeseries, barometric_value
+):
     """Test that InvalidMeasurementTypeError is raised for wrong timeseries type."""
-    barometric_value = 1010.0
 
-    try:
-        Compensator(ts=invalid_timeseries_type, barometric=barometric_value)
-    except pyd.ValidationError as exc:
-        assert exc.errors()[0]["type"] == "value_error"
-
-
-def test_missing_sensor_alt(missing_sensor_alt_timeseries):
-    """Test that MissingInputError is raised when sensor_alt is missing."""
-    barometric_value = 1010.0
-
-    try:
-        Compensator(ts=missing_sensor_alt_timeseries, barometric=barometric_value)
-    except pyd.ValidationError as exc:
-        assert exc.errors()[0]["type"] == "value_error"
+    with pytest.raises(pyd.ValidationError):
+        compensate(raw=synthetic_temperature_timeseries, barometric=barometric_value)
 
 
 def test_invalid_barometric_timeseries_type(
-    valid_submerged_timeseries, invalid_timeseries_type
+    synthetic_submerged_timeseries, synthetic_temperature_timeseries
 ):
     """Test that InvalidMeasurementTypeError is raised for wrong barometric timeseries type."""
     with pytest.raises(pyd.ValidationError):
-        Compensator(ts=valid_submerged_timeseries, barometric=invalid_timeseries_type)
+        compensate(
+            raw=synthetic_submerged_timeseries,
+            barometric=synthetic_temperature_timeseries,
+        )
+
+
+def test_missing_sensor_alt(synthetic_submerged_timeseries, barometric_value):
+    """Test that MissingInputError is raised when sensor_alt is missing."""
+    missing_sensor_alt = synthetic_submerged_timeseries.model_copy(
+        update={"sensor_alt": None}
+    )
+    with pytest.raises(pyd.ValidationError):
+        compensate(raw=missing_sensor_alt, barometric=barometric_value)
+
+
+def test_mask_fieldwork_days(pb01a_fieldwork, pb01a_timeseries, baro_timeseries):
+    """Test removal of erroneous measurements with a mask of fieldwork events"""
+
+    comp_ts = compensate(
+        raw=pb01a_timeseries[0],
+        barometric=baro_timeseries[0],
+        fieldwork_dates=pb01a_fieldwork,
+    )
+
+    assert len(comp_ts.ts) == len(pb01a_timeseries[0].ts)

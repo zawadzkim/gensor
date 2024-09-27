@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
 from typing import Any, Literal, Self
 
 import pandas as pd
@@ -38,6 +37,26 @@ VARIABLE_TYPES_AND_UNITS = {
     "head": ["m asl"],
     "depth": ["m"],
 }
+
+
+class TimeseriesIndexer:
+    """A wrapper for the Pandas indexers (e.g., loc, iloc) to return Timeseries objects."""
+
+    # marked indexer as Any to silence mypy. BaseIndexer is normally not indexable:
+
+    def __init__(self, parent: Timeseries, indexer: Any):
+        self.parent = parent
+        self.indexer = indexer
+
+    def __getitem__(self, key: str) -> Timeseries:
+        """Allows using the indexer (e.g., loc) and wraps the result in a Timeseries."""
+
+        result = self.indexer[key]
+
+        if isinstance(result, pd.Series):
+            return self.parent.model_copy(update={"ts": result}, deep=True)
+        message = f"Expected pd.Series, but got {type(result)} instead."
+        raise TypeError(message)
 
 
 class Timeseries(pyd.BaseModel):
@@ -102,11 +121,16 @@ class Timeseries(pyd.BaseModel):
             and self.unit == other.unit
             and self.location == other.location
             and self.sensor == other.sensor
-            and self.start == other.start
+            and self.sensor_alt == other.sensor_alt
         )
 
     def __getattr__(self, attr: Any) -> Any:
-        """Delegate attribute access to the underlying pandas Series if it exists."""
+        """Delegate attribute access to the underlying pandas Series if it exists.
+
+        Special handling is implemented for pandas indexer.
+        """
+        if attr == "loc":
+            return TimeseriesIndexer(self, self.ts.loc)
 
         error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
 
@@ -129,7 +153,9 @@ class Timeseries(pyd.BaseModel):
 
     @pyd.field_validator("ts")
     def validate_ts(cls, v: pd.Series) -> pd.Series:
-        return ts_schema.validate(v)
+        validated_ts = ts_schema.validate(v)
+
+        return validated_ts
 
     @pyd.field_validator("outliers")
     def validate_outliers(cls, v: pd.Series) -> pd.Series:
@@ -151,15 +177,18 @@ class Timeseries(pyd.BaseModel):
             raise TimeseriesUnequal()
 
     def resample(
-        self, freq: str, agg_func: Callable = pd.Series.mean, **resample_kwargs: Any
+        self,
+        freq: Any,
+        agg_func: Any = pd.Series.mean,
+        **resample_kwargs: Any,
     ) -> Timeseries:
         """Resample the timeseries to a new frequency with a specified
         aggregation function.
 
         Parameters:
-            freq (str): The new frequency for resampling the timeseries
+            freq (Any): The offset string or object representing target conversion
                 (e.g., 'D' for daily, 'W' for weekly).
-            agg_func (Callable, optional): The aggregation function to apply
+            agg_func (Any): The aggregation function to apply
                 after resampling. Defaults to pd.Series.mean.
             **resample_kwargs: Additional keyword arguments passed to the
                 pandas.Series.resample method.
@@ -210,6 +239,7 @@ class Timeseries(pyd.BaseModel):
     def detect_outliers(
         self,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        rolling: bool = False,
         remove: bool = True,
         **kwargs: Any,
     ) -> Timeseries:
@@ -224,11 +254,11 @@ class Timeseries(pyd.BaseModel):
             Updated deep copy of the Timeseries object with outliers,
             optionally removed from the original timeseries.
         """
-        self.outliers = OutlierDetection(self.ts, method, **kwargs).outliers
+        self.outliers = OutlierDetection(self.ts, method, rolling, **kwargs).outliers
 
         if remove:
             filtered_ts = self.ts.drop(self.outliers.index)
-            return self.model_copy(update={"ts": filtered_ts})
+            return self.model_copy(update={"ts": filtered_ts}, deep=True)
 
         else:
             return self
@@ -338,7 +368,7 @@ class Timeseries(pyd.BaseModel):
             ax.scatter(
                 self.outliers.index, self.outliers, color="red", label="Outliers"
             )
-
+        plt.xticks(rotation=45)
         ax.set_xlabel("Time")
         ax.set_ylabel(f"{self.variable} ({self.unit})")
         ax.set_title(f"{self.variable.capitalize()} at {self.location}")
@@ -438,9 +468,9 @@ class Dataset(pyd.BaseModel):
 
     def filter(
         self,
-        station: str | None = None,
-        sensor: str | None = None,
-        variable: str | None = None,
+        stations: str | list | None = None,
+        sensors: str | list | None = None,
+        variables: str | list | None = None,
     ) -> Timeseries | Dataset:
         """Return a Timeseries or a new Dataset filtered by station, sensor,
         and/or variable.
@@ -455,13 +485,22 @@ class Dataset(pyd.BaseModel):
                                    or a new Dataset if multiple matches are found.
         """
 
+        if isinstance(stations, str):
+            stations = [stations]
+
+        if isinstance(sensors, str):
+            sensors = [sensors]
+
+        if isinstance(variables, str):
+            variables = [variables]
+
         matching_timeseries = [
             ts
             for ts in self.timeseries
             if ts is not None
-            if (station is None or ts.location == station)
-            and (sensor is None or ts.sensor == sensor)
-            and (variable is None or ts.variable == variable)
+            if (stations is None or ts.location in stations)
+            and (sensors is None or ts.sensor in sensors)
+            and (variables is None or ts.variable in variables)
         ]
 
         if not matching_timeseries:

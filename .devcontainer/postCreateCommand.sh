@@ -5,3 +5,5 @@ poetry install --with dev
 
 # Install pre-commit hooks
 poetry run pre-commit install --install-hooks
+
+mkdir -p .logs

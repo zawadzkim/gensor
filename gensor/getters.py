@@ -12,24 +12,27 @@ from sqlalchemy import select
 from .db.connection import DatabaseConnection
 from .dtypes import Dataset, Timeseries
 from .exceptions import NoFilesToLoad
-from .parse import parse_vanessen_csv
+from .parse import parse_plain, parse_vanessen_csv
 
 
 def read_from_csv(
-    path: Path, file_format: Literal["vanessen"] = "vanessen", **kwargs: Any
+    path: Path, file_format: Literal["vanessen", "plain"] = "vanessen", **kwargs: Any
 ) -> Dataset:
-    """Loads the data from the Van Essen CSV file(s) and returns a list of Timeseries objects.
+    """Loads the data from csv files with given file_format and returns a list of Timeseries objects.
 
-    Args:
+    Parameters:
         path (Path): The path to the file or directory containing the files.
-        **kwargs (dict): Optional keyword arguments passed to `parse_vanessen_csv()` to specify the regex patterns for the serial number and station.
-            serial_number_pattern (str): The regex pattern to extract the serial number from the file.
-            location_pattern (str): The regex pattern to extract the station from the file.
-            col_names (list): The column names for the dataframe.
+        **kwargs (dict): Optional keyword arguments passed to the parsers:
+            * serial_number_pattern (str): The regex pattern to extract the serial number from the file.
+            * location_pattern (str): The regex pattern to extract the station from the file.
+            * col_names (list): The column names for the dataframe.
+            * location (str): Name of the location of the timeseries.
+            * sensor (str): Sensor serial number.
     """
 
     parsers = {
         "vanessen": parse_vanessen_csv,
+        "plain": parse_plain,
         # more parser to be implemented
     }
 

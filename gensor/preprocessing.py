@@ -2,6 +2,7 @@
 
 from typing import Any, Literal
 
+import numba
 import numpy as np
 from pandas import Series
 from scipy import stats
@@ -152,27 +153,56 @@ class Transform:
 
 
 class OutlierDetection:
-    """Class for detecting outliers in time series data."""
+    """Detecting outliers in groundwater timeseries data.
+
+    Each method in this class returns a pandas.Series containing predicted outliers in
+    the dataset.
+
+    Methods:
+        iqr: Use interquartile range (IQR).
+        zscore: Use the z-score method.
+        isolation_forest: Using the isolation forest algorithm.
+        lof: Using the local outlier factor (LOF) method.
+    """
 
     def __init__(
         self,
         data: Series,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        rolling: bool = False,
+        window: int = 6,
         **kwargs: Any,
     ) -> None:
-        """Find outliers in a time series using the specified method."""
-        if method == "iqr":
-            self.outliers = self.iqr(data, **kwargs)
-        elif method == "zscore":
-            self.outliers = self.zscore(data, **kwargs)
-        elif method == "isolation_forest":
-            self.outliers = self.isolation_forest(data, **kwargs)
-        elif method == "lof":
-            self.outliers = self.lof(data, **kwargs)
-        else:
-            raise NotImplementedError()
+        """Find outliers in a time series using the specified method, with an option for rolling window."""
 
-    def iqr(self, data: Series, **kwargs: float) -> Series:
+        FUNCS = {
+            "iqr": self.iqr,
+            "zscore": self.zscore,
+            "isolation_forest": self.isolation_forest,
+            "lof": self.lof,
+        }
+
+        method_func = FUNCS[method]
+
+        if method in ["iqr", "zscore"]:
+            y = (
+                kwargs.get("k", 1.5)
+                if method == "iqr"
+                else kwargs.get("threshold", 3.0)
+            )
+            if rolling:
+                roll = data.rolling(window=window)
+                mask = roll.apply(lambda x: method_func(x, y), raw=True, engine="numba")
+            else:
+                mask = method_func(data.to_numpy(), y)
+
+        bool_mask = mask.astype(bool)
+        bool_mask_series = Series(bool_mask, index=data.index)
+        self.outliers = data[bool_mask_series]
+
+    @staticmethod
+    @numba.njit(nogil=True)
+    def iqr(data: np.ndarray, k: float) -> np.ndarray:
         """Use interquartile range (IQR).
 
         Parameters:
@@ -182,48 +212,43 @@ class OutlierDetection:
             k (float): The multiplier for the IQR to define the range. Defaults to 1.5.
 
         Returns:
-            pandas.Series: Outliers detected in the data.
+            np.ndarray: Binary mask representing the outliers as 1.
         """
 
-        k: float = kwargs.get("k", 1.5)
-
-        Q1 = data.quantile(0.25)
-        Q3 = data.quantile(0.75)
+        Q1 = np.percentile(data, 0.25)
+        Q3 = np.percentile(data, 0.75)
         IQR = Q3 - Q1
 
         lower_bound = Q1 - k * IQR
         upper_bound = Q3 + k * IQR
 
-        outliers = data[(data < lower_bound) | (data > upper_bound)]
+        return np.where((data < lower_bound) | (data > upper_bound), 1, 0)
 
-        return outliers
+    @staticmethod
+    @numba.njit(nogil=True)
+    def zscore(data: np.ndarray, threshold: float) -> np.ndarray:
+        """Use the z-score method.
 
-    def zscore(self, data: Series, **kwargs: float) -> Series:
-        """Detect outliers in a time series using the z-score method.
-
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:
             threshold (float): The threshold for the z-score method. Defaults to 3.0.
 
         Returns:
-            pandas.Series: Outliers detected in the data.
+            pandas.Series: Binary mask representing outliers.
         """
 
-        threshold = kwargs.get("threshold", 3.0)
+        mean = np.mean(data)
+        std_dev = np.std(data)
 
-        mean = data.mean()
-        std_dev = data.std()
-
-        outliers: Series = data[(data - mean).abs() > threshold * std_dev]
-
-        return outliers
+        z_scores = np.abs((data - mean) / std_dev)
+        return np.where(z_scores > threshold, 1, 0)
 
     def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
-        """Detect outliers in a time series using the isolation forest method.
+        """Using the isolation forest algorithm.
 
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:
@@ -252,9 +277,9 @@ class OutlierDetection:
         return outliers
 
     def lof(self, data: Series, **kwargs: Any) -> Series:
-        """Detect outliers in a time series using the local outlier factor (LOF) method.
+        """Using the local outlier factor (LOF) method.
 
-        Args:
+        Parameters:
             data (pandas.Series): The time series data.
 
         Keyword Args:

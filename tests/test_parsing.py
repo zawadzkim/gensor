@@ -11,3 +11,9 @@ def test_parsing_vanessen(baro_timeseries):
         from a station named 'Barodiver'"
     assert dataset[0].variable == "pressure", "The first object should be the \
           pressure measurements"
+
+
+def test_plain_parser(pb02a_plain_timeseries):
+    ds = pb02a_plain_timeseries
+
+    assert isinstance(ds, Dataset), "The resulting object should be a Dataset."

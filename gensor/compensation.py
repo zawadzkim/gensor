@@ -20,12 +20,12 @@ Functions:
     compensate: Compensate raw sensor pressure measurement with barometric pressure.
 """
 
-from typing import Any
+from typing import Literal
 
 import pandas as pd
 import pydantic as pyd
 
-from .dtypes import Timeseries
+from .dtypes import Dataset, Timeseries
 from .exceptions import (
     InvalidMeasurementTypeError,
     MissingInputError,
@@ -39,14 +39,10 @@ class Compensator(pyd.BaseModel):
         ts (Timeseries): Raw sensor timeseries
         barometric (Timeseries | float): Barometric pressure timeseries or a single
             float value. If a float value is provided, it is assumed to be in cmH2O.
-        drop_low_wc (bool): Whether to drop records where the absolute water column is
-            less than or equal to the cutoff value. Defaults to True.
-
     """
 
     ts: Timeseries
     barometric: Timeseries | float
-    drop_low_wc: bool = True
 
     @pyd.field_validator("ts", "barometric", mode="before")
     def validate_timeseries_type(cls, v: Timeseries) -> Timeseries:
@@ -60,70 +56,139 @@ class Compensator(pyd.BaseModel):
             raise MissingInputError("sensor_alt")
         return v
 
-    def compensate(self, **kwargs: Any) -> Timeseries | None:
+    def compensate(
+        self,
+        alignment_period: Literal["D", "ME", "SME", "MS", "YE", "YS", "h", "min", "s"],
+        threshold_wc: float | None,
+        fieldwork_dates: list | None,
+    ) -> Timeseries | None:
         """Perform compensation.
 
-        Keyword Arguments:
-            alignment_period (str): The alignment period for the timeseries.
-                Default is 'H' (hourly).
+        Parameters:
+            alignment_period Literal['D', 'ME', 'SME', 'MS', 'YE', 'YS', 'h', 'min', 's']: The alignment period for the timeseries.
+                Default is 'h'. See pandas offset aliases for definitinos.
             threshold_wc (float): The threshold for the absolute water column.
-                Defaults to 0.5 m.
+            fieldwork_dates (Optional[list]): List of dates when fieldwork was done. All
+                measurement from a fieldwork day will be set to None.
 
         Returns:
-            Timeseries: A new Timeseries instance with the compensated data.
+            Timeseries: A new Timeseries instance with the compensated data and updated unit and variable. Optionally removed outliers are included.
         """
 
-        alignment_period = kwargs.get("alignment_period", "h")
-        threshold_wc = kwargs.get("threshold_wc", 0.5)
-        resample_params = {"freq": alignment_period, "agg_func": "mean"}
+        resample_params = {"freq": alignment_period, "agg_func": pd.Series.mean}
         resampled_ts = self.ts.resample(**resample_params)
 
         if isinstance(self.barometric, Timeseries):
             if self.ts == self.barometric:
                 print("Skipping compensation: both timeseries are the same.")
                 return None
-            baro = self.barometric.resample(**resample_params).ts
+            resampled_baro = self.barometric.resample(**resample_params).ts
+
         elif isinstance(self.barometric, float):
-            baro = pd.Series(
+            resampled_baro = pd.Series(
                 [self.barometric] * len(resampled_ts.ts), index=resampled_ts.ts.index
             )
 
         # dividing by 100 to convert water column from cmH2O to mH2O
-        watercolumn_ts = resampled_ts.ts.sub(baro).divide(100).dropna()
+        watercolumn_ts = resampled_ts.ts.sub(resampled_baro).divide(100).dropna()
 
-        if self.drop_low_wc:
+        if not isinstance(watercolumn_ts.index, pd.DatetimeIndex):
+            watercolumn_ts.index = pd.to_datetime(watercolumn_ts.index)
+
+        if fieldwork_dates:
+            fieldwork_timestamps = pd.to_datetime(fieldwork_dates).tz_localize(
+                watercolumn_ts.index.tz
+            )
+
+            watercolumn_ts.loc[
+                watercolumn_ts.index.normalize().isin(fieldwork_timestamps)
+            ] = None
+
+        if threshold_wc:
             watercolumn_ts_filtered = watercolumn_ts[
                 watercolumn_ts.abs() > threshold_wc
             ]
+
+            dropped_outliers = watercolumn_ts[watercolumn_ts.abs() <= threshold_wc]
+
             print(
-                f"{len(watercolumn_ts) - len(watercolumn_ts_filtered)} records \
+                f"{len(dropped_outliers)} records \
                     dropped due to low water column."
             )
             gwl = watercolumn_ts_filtered.add(float(resampled_ts.sensor_alt or 0))
+
+            compensated = resampled_ts.model_copy(
+                update={
+                    "ts": gwl,
+                    "outliers": dropped_outliers,
+                    "unit": "m asl",
+                    "variable": "head",
+                },
+                deep=True,
+            )
         else:
             gwl = watercolumn_ts.add(float(resampled_ts.sensor_alt or 0))
 
-        compensated = resampled_ts.model_copy(
-            update={"ts": gwl, "unit": "m asl", "variable": "head"}
-        )
+            compensated = resampled_ts.model_copy(
+                update={"ts": gwl, "unit": "m asl", "variable": "head"}, deep=True
+            )
 
         return compensated
 
 
 def compensate(
-    ts: Timeseries,
+    raw: Timeseries | Dataset,
     barometric: Timeseries | float,
-    drop_low_wc: bool,
-    **kwargs: Any,
-) -> Timeseries | None:
-    """Constructor for the Comensate class object.
+    alignment_period: Literal[
+        "D", "ME", "SME", "MS", "YE", "YS", "h", "min", "s"
+    ] = "h",
+    threshold_wc: float | None = None,
+    fieldwork_dates: dict | None = None,
+    interpolate_method: str | None = None,
+) -> Timeseries | Dataset | None:
+    """Constructor for the Comensator object.
 
     Parameters:
-        ts (Timeseries): Raw sensor timeseries
+        raw (Timeseries | Dataset): Raw sensor timeseries
         barometric (Timeseries | float): Barometric pressure timeseries or a single
             float value. If a float value is provided, it is assumed to be in cmH2O.
-        drop_low_wc (bool): Whether to drop records where the absolute water column is
-            less than or equal to the cutoff value. Defaults to True.
+        alignment_period (Literal['D', 'ME', 'SME', 'MS', 'YE', 'YS', 'h', 'min', 's']): The alignment period for the timeseries.
+            Default is 'h'. See pandas offset aliases for definitinos.
+        threshold_wc (float): The threshold for the absolute water column. If it is
+            provided, the records below that threshold are dropped.
+        fieldwork_dates (Dict[str, list]): Dictionary of location name and a list of
+            fieldwork days. All records on the fieldwork day are set to None.
+        interpolate_method (str): String representing the interpolate method as in
+            pd.Series.interpolate() method.
     """
-    comp = Compensator(ts=ts, barometric=barometric, drop_low_wc=drop_low_wc)
-    return comp.compensate(**kwargs)
+    if fieldwork_dates is None:
+        fieldwork_dates = {}
+
+    def _compensate_one(
+        raw: Timeseries, fieldwork_dates: list | None
+    ) -> Timeseries | None:
+        comp = Compensator(ts=raw, barometric=barometric)
+        compensated = comp.compensate(
+            alignment_period=alignment_period,
+            threshold_wc=threshold_wc,
+            fieldwork_dates=fieldwork_dates,
+        )
+        if compensated is not None and interpolate_method:
+            # .interpolate() called on Timeseries object is wrapped to return a
+            # Timeseries object from the original pandas.Series.interpolate().
+            return compensated.interpolate(method=interpolate_method)  # type: ignore[no-any-return]
+
+        else:
+            return compensated
+
+    if isinstance(raw, Timeseries):
+        dates = fieldwork_dates.get(raw.location)
+        return _compensate_one(raw, dates)
+
+    elif isinstance(raw, Dataset):
+        compensated_series = []
+        for item in raw:
+            dates = fieldwork_dates.get(item.location)
+            compensated_series.append(_compensate_one(item, dates))
+
+        return raw.model_copy(update={"timeseries": compensated_series}, deep=True)

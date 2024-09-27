@@ -13,11 +13,13 @@ watch:
 nav:
   - Home: index.md
   - Modules: modules.md
+  - Tutorials: notebooks/index.md
 
 strict: false
 plugins:
   - search
   - autorefs
+  - mkdocs-jupyter
   - mkdocstrings:
       handlers:
         python:
@@ -60,6 +62,7 @@ extra:
       link: https://pypi.org/project/gensor
 
 markdown_extensions:
+  - admonition
   - toc:
       permalink: true
   - pymdownx.arithmatex:
