@@ -167,9 +167,13 @@ def pb01a_timeseries() -> Timeseries:
     """
     from gensor.testdata import pb01a
 
-    return read_from_csv(
+    pb01a = read_from_csv(
         path=pb01a, file_format="vanessen", location="PB01A", sensor="AV319"
     )
+
+    pb01a[0].sensor_alt = 31.48
+
+    return pb01a
 
 
 @pytest.fixture
@@ -182,3 +186,8 @@ def pb02a_plain_timeseries() -> Timeseries:
     return read_from_csv(
         path=pb02a_plain, file_format="plain", location="PB02A", sensor="AV319"
     )
+
+
+@pytest.fixture
+def pb01a_fieldwork() -> list:
+    return {"PB01A": ["2020-08-25"]}

@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
 from typing import Any, Literal, Self
 
 import pandas as pd
@@ -38,6 +37,26 @@ VARIABLE_TYPES_AND_UNITS = {
     "head": ["m asl"],
     "depth": ["m"],
 }
+
+
+class TimeseriesIndexer:
+    """A wrapper for the Pandas indexers (e.g., loc, iloc) to return Timeseries objects."""
+
+    # marked indexer as Any to silence mypy. BaseIndexer is normally not indexable:
+
+    def __init__(self, parent: Timeseries, indexer: Any):
+        self.parent = parent
+        self.indexer = indexer
+
+    def __getitem__(self, key: str) -> Timeseries:
+        """Allows using the indexer (e.g., loc) and wraps the result in a Timeseries."""
+
+        result = self.indexer[key]
+
+        if isinstance(result, pd.Series):
+            return self.parent.model_copy(update={"ts": result}, deep=True)
+        message = f"Expected pd.Series, but got {type(result)} instead."
+        raise TypeError(message)
 
 
 class Timeseries(pyd.BaseModel):
@@ -102,11 +121,16 @@ class Timeseries(pyd.BaseModel):
             and self.unit == other.unit
             and self.location == other.location
             and self.sensor == other.sensor
-            and self.start == other.start
+            and self.sensor_alt == other.sensor_alt
         )
 
     def __getattr__(self, attr: Any) -> Any:
-        """Delegate attribute access to the underlying pandas Series if it exists."""
+        """Delegate attribute access to the underlying pandas Series if it exists.
+
+        Special handling is implemented for pandas indexer.
+        """
+        if attr == "loc":
+            return TimeseriesIndexer(self, self.ts.loc)
 
         error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
 
@@ -129,7 +153,9 @@ class Timeseries(pyd.BaseModel):
 
     @pyd.field_validator("ts")
     def validate_ts(cls, v: pd.Series) -> pd.Series:
-        return ts_schema.validate(v)
+        validated_ts = ts_schema.validate(v)
+
+        return validated_ts
 
     @pyd.field_validator("outliers")
     def validate_outliers(cls, v: pd.Series) -> pd.Series:
@@ -151,15 +177,18 @@ class Timeseries(pyd.BaseModel):
             raise TimeseriesUnequal()
 
     def resample(
-        self, freq: str, agg_func: Callable = pd.Series.mean, **resample_kwargs: Any
+        self,
+        freq: Any,
+        agg_func: Any = pd.Series.mean,
+        **resample_kwargs: Any,
     ) -> Timeseries:
         """Resample the timeseries to a new frequency with a specified
         aggregation function.
 
         Parameters:
-            freq (str): The new frequency for resampling the timeseries
+            freq (Any): The offset string or object representing target conversion
                 (e.g., 'D' for daily, 'W' for weekly).
-            agg_func (Callable, optional): The aggregation function to apply
+            agg_func (Any): The aggregation function to apply
                 after resampling. Defaults to pd.Series.mean.
             **resample_kwargs: Additional keyword arguments passed to the
                 pandas.Series.resample method.
@@ -339,7 +368,7 @@ class Timeseries(pyd.BaseModel):
             ax.scatter(
                 self.outliers.index, self.outliers, color="red", label="Outliers"
             )
-
+        plt.xticks(rotation=45)
         ax.set_xlabel("Time")
         ax.set_ylabel(f"{self.variable} ({self.unit})")
         ax.set_title(f"{self.variable.capitalize()} at {self.location}")

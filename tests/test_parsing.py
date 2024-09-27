@@ -14,4 +14,6 @@ def test_parsing_vanessen(baro_timeseries):
 
 
 def test_plain_parser(pb02a_plain_timeseries):
-    dataset = pb02a_plain_timeseries
+    ds = pb02a_plain_timeseries
+
+    assert isinstance(ds, Dataset), "The resulting object should be a Dataset."

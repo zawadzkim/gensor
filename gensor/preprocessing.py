@@ -1,6 +1,7 @@
 """Class and methods for preprocessing groundwater level data."""
 
 from typing import Any, Literal
+
 import numba
 import numpy as np
 from pandas import Series
@@ -178,21 +179,20 @@ class OutlierDetection:
             "iqr": self.iqr,
             "zscore": self.zscore,
             "isolation_forest": self.isolation_forest,
-            "lof": self.lof
+            "lof": self.lof,
         }
 
         method_func = FUNCS[method]
 
-        if method in ['iqr', 'zscore']:
-            y = kwargs.get("k", 1.5) if method == 'iqr' else kwargs.get(
-                "threshold", 3.0)
+        if method in ["iqr", "zscore"]:
+            y = (
+                kwargs.get("k", 1.5)
+                if method == "iqr"
+                else kwargs.get("threshold", 3.0)
+            )
             if rolling:
                 roll = data.rolling(window=window)
-                mask = roll.apply(
-                    lambda x: method_func(x, y),
-                    raw=True,
-                    engine='numba'
-                )
+                mask = roll.apply(lambda x: method_func(x, y), raw=True, engine="numba")
             else:
                 mask = method_func(data.to_numpy(), y)
 

@@ -90,5 +90,13 @@ def test_missing_sensor_alt(synthetic_submerged_timeseries, barometric_value):
         compensate(raw=missing_sensor_alt, barometric=barometric_value)
 
 
-def test_mask_fieldwork_days():
-    pass
+def test_mask_fieldwork_days(pb01a_fieldwork, pb01a_timeseries, baro_timeseries):
+    """Test removal of erroneous measurements with a mask of fieldwork events"""
+
+    comp_ts = compensate(
+        raw=pb01a_timeseries[0],
+        barometric=baro_timeseries[0],
+        fieldwork_dates=pb01a_fieldwork,
+    )
+
+    assert len(comp_ts.ts) == len(pb01a_timeseries[0].ts)
