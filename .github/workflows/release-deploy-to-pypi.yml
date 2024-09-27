@@ -25,6 +25,13 @@ jobs:
           version=$(poetry version -s)
           echo "VERSION=$version" >> $GITHUB_ENV
 
+      - name: Create Git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
