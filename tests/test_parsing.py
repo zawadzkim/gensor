@@ -1,4 +1,5 @@
-from gensor import Dataset, Timeseries
+from gensor.core.dataset import Dataset
+from gensor.core.timeseries import Timeseries
 
 
 def test_parsing_vanessen(baro_timeseries):

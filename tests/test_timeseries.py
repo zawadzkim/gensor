@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 from pandera.errors import SchemaError
 
-from gensor import Timeseries
+from gensor.core.timeseries import Timeseries
 
 # ============================== Test Timeseries creation ==============================
 

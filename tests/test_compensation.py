@@ -2,7 +2,8 @@ import pandas as pd
 import pydantic as pyd
 import pytest
 
-from gensor import Timeseries, compensate
+from gensor import compensate
+from gensor.core.timeseries import Timeseries
 
 
 def test_compensator_with_valid_data(

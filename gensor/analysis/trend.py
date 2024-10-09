@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from .dtypes import Timeseries
+from ..core.timeseries import Timeseries
 
 
 def trend_analysis(ts: Timeseries, plot: bool = True) -> None:

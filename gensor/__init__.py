@@ -1,7 +1,9 @@
-from .compensation import Compensator, compensate
-from .dtypes import Dataset, Timeseries
-from .getters import read_from_csv, read_from_sql
-from .preprocessing import OutlierDetection, Transform
+from .processing.compensation import Compensator, compensate
+from .core.timeseries import Timeseries
+from .core.dataset import Dataset
+from .io.getters import read_from_csv, read_from_sql
+from .processing.transform import Transform
+from .analysis.outliers import OutlierDetection
 
 __all__ = [
     # basic data types

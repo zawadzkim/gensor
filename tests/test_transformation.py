@@ -9,7 +9,7 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 
-from gensor import Timeseries
+from gensor.core.timeseries import Timeseries
 
 # =================== Test Timeseries methods ================================
 dates = pd.date_range(start="2023-01-01", periods=10, freq="D", tz="UTC")

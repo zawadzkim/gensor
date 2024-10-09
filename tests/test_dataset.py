@@ -1,6 +1,6 @@
 import pytest
 
-from gensor import Dataset
+from gensor.core.dataset import Dataset
 
 
 def test_add_timeseries_to_dataset(pb01a_timeseries, baro_timeseries):

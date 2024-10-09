@@ -25,8 +25,9 @@ from typing import Literal
 import pandas as pd
 import pydantic as pyd
 
-from .dtypes import Dataset, Timeseries
-from .exceptions import (
+from ..core.timeseries import Timeseries
+from ..core.dataset import Dataset
+from ..exceptions import (
     InvalidMeasurementTypeError,
     MissingInputError,
 )

@@ -20,7 +20,8 @@ import os
 import pandas as pd
 import pytest
 
-from gensor import Timeseries, read_from_csv
+from gensor import read_from_csv
+from gensor.core.timeseries import Timeseries
 from gensor.db import DatabaseConnection
 
 # ====================================== Database ======================================
