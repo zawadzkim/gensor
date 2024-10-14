@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from ..core.timeseries import Timeseries
 from ..config import VARIABLE_TYPES_AND_UNITS
+from ..core.timeseries import Timeseries
 from .utils import detect_encoding, get_data, get_metadata, handle_timestamps
 
 

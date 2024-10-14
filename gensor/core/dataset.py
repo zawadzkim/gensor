@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-
-from gensor.core.timeseries import Timeseries
-from gensor.db import DatabaseConnection
-from gensor.exceptions import IndexOutOfRangeError, TimeseriesNotFound
-
+from collections import defaultdict
+from typing import Any, Self
 
 import pydantic as pyd
 from matplotlib import pyplot as plt
 
-
-from collections import defaultdict
-from typing import Any, Self
+from gensor.core.timeseries import Timeseries
+from gensor.db import DatabaseConnection
+from gensor.exceptions import IndexOutOfRangeError, TimeseriesNotFound
 
 
 class Dataset(pyd.BaseModel):

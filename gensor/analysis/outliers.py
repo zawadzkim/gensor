@@ -1,11 +1,10 @@
+from typing import Any, Literal
+
 import numba
 import numpy as np
 from pandas import Series
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
-
-
-from typing import Any, Literal
 
 
 class OutlierDetection:

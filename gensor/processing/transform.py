@@ -1,10 +1,14 @@
+from typing import Any, Literal
+
 import numpy as np
 from pandas import Series
 from scipy import stats
-from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, RobustScaler, StandardScaler
-
-
-from typing import Any, Literal
+from sklearn.preprocessing import (
+    MaxAbsScaler,
+    MinMaxScaler,
+    RobustScaler,
+    StandardScaler,
+)
 
 
 class Transform:

@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import pandera as pa
-
-
-from gensor.core.indexer import TimeseriesIndexer
-from gensor.db import DatabaseConnection
-from gensor.exceptions import TimeseriesUnequal
-from gensor.analysis.outliers import OutlierDetection
-from gensor.processing.transform import Transform
-
+from typing import Any, Literal
 
 import pandas as pd
+import pandera as pa
 import pydantic as pyd
 from matplotlib import pyplot as plt
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-
-from typing import Any, Literal
-
+from gensor.analysis.outliers import OutlierDetection
+from gensor.core.indexer import TimeseriesIndexer
+from gensor.db import DatabaseConnection
+from gensor.exceptions import TimeseriesUnequal
+from gensor.processing.transform import Transform
 
 ts_schema = pa.SeriesSchema(
     float,
@@ -202,6 +197,22 @@ class Timeseries(pyd.BaseModel):
 
         return self.model_copy(
             update={"ts": data, "transformation": transformation}, deep=True
+        )
+
+    def inverse_transform(self) -> Timeseries:
+        """Reverts the transformed timeseries back to its original scale.
+
+        This method applies the inverse transformation based on the stored transformer.
+        """
+        if self.transformation is None:
+            message = "No transformation has been applied to the timeseries."
+            raise ValueError(message)
+
+        # Assuming the transformation object has an 'inverse_transform' method
+        original_data = self.transformation.inverse_transform(self.ts)
+
+        return self.model_copy(
+            update={"ts": pd.Series(original_data, index=self.ts.index)}, deep=True
         )
 
     def detect_outliers(

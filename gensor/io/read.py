@@ -9,9 +9,9 @@ from typing import Any, Literal
 import pandas as pd
 from sqlalchemy import select
 
+from ..core.dataset import Dataset
 from ..core.timeseries import Timeseries
 from ..db.connection import DatabaseConnection
-from ..core.dataset import Dataset
 from ..exceptions import NoFilesToLoad
 from ..parse import parse_plain, parse_vanessen_csv
 

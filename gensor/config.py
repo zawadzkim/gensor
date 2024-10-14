@@ -7,7 +7,6 @@
     the timestamps are in UTC format.
 """
 
-
 VARIABLE_TYPES_AND_UNITS = {
     "temperature": ["degc"],
     "pressure": ["cmh2o", "mmh2o"],
