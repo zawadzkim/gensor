@@ -19,7 +19,8 @@ strict: false
 plugins:
   - search
   - autorefs
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: true
   - mkdocstrings:
       handlers:
         python:
