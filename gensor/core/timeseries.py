@@ -13,7 +13,7 @@ from gensor.analysis.outliers import OutlierDetection
 from gensor.core.indexer import TimeseriesIndexer
 from gensor.db import DatabaseConnection
 from gensor.exceptions import TimeseriesUnequal
-from gensor.processing.transform import Transform
+from gensor.processing.transform import Transformation
 
 ts_schema = pa.SeriesSchema(
     float,
@@ -191,7 +191,7 @@ class Timeseries(pyd.BaseModel):
                 transformed timeseries data.
         """
 
-        data, transformation = Transform(
+        data, transformation = Transformation(
             self.ts, method, **transformer_kwargs
         ).get_transformation()
 
@@ -199,26 +199,11 @@ class Timeseries(pyd.BaseModel):
             update={"ts": data, "transformation": transformation}, deep=True
         )
 
-    def inverse_transform(self) -> Timeseries:
-        """Reverts the transformed timeseries back to its original scale.
-
-        This method applies the inverse transformation based on the stored transformer.
-        """
-        if self.transformation is None:
-            message = "No transformation has been applied to the timeseries."
-            raise ValueError(message)
-
-        # Assuming the transformation object has an 'inverse_transform' method
-        original_data = self.transformation.inverse_transform(self.ts)
-
-        return self.model_copy(
-            update={"ts": pd.Series(original_data, index=self.ts.index)}, deep=True
-        )
-
     def detect_outliers(
         self,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
         rolling: bool = False,
+        window: int = 6,
         remove: bool = True,
         **kwargs: Any,
     ) -> Timeseries:
@@ -233,7 +218,9 @@ class Timeseries(pyd.BaseModel):
             Updated deep copy of the Timeseries object with outliers,
             optionally removed from the original timeseries.
         """
-        self.outliers = OutlierDetection(self.ts, method, rolling, **kwargs).outliers
+        self.outliers = OutlierDetection(
+            self.ts, method, rolling, window, **kwargs
+        ).outliers
 
         if remove:
             filtered_ts = self.ts.drop(self.outliers.index)
@@ -241,6 +228,36 @@ class Timeseries(pyd.BaseModel):
 
         else:
             return self
+
+    def mask_with(
+        self, other: Timeseries | pd.Series, mode: Literal["keep", "remove"] = "remove"
+    ) -> Timeseries:
+        """
+        Removes records not present in 'other' by index.
+
+        Parameters:
+            other (Timeseries): Another Timeseries whose indices are used to mask the current one.
+            direction (Literal['keep', 'remove']):
+                - 'keep': Retains only the overlapping data.
+                - 'remove': Removes the overlapping data.
+
+        Returns:
+            Timeseries: A new Timeseries object with the filtered data.
+        """
+        if isinstance(other, pd.Series):
+            mask = other
+        elif isinstance(other, Timeseries):
+            mask = other.ts
+
+        if mode == "keep":
+            masked_data = self.ts[self.ts.index.isin(mask.index)]
+        elif mode == "remove":
+            masked_data = self.ts[~self.ts.index.isin(mask.index)]
+        else:
+            message = f"Invalid direction: {mode}. Use 'keep' or 'remove'."
+            raise ValueError(message)
+
+        return self.model_copy(update={"ts": masked_data}, deep=True)
 
     def to_sql(self, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.

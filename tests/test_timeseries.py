@@ -65,5 +65,34 @@ def test_adding_timeseries_not_equal(synthetic_submerged_timeseries):
         synthetic_submerged_timeseries.concatenate(unequal_serie)
 
 
+def test_mask_with(
+    synthetic_submerged_timeseries, extended_synthetic_submerged_pressure_timeseries
+):
+    """
+    Test the mask_with method which filters a Timeseries to only include records
+    whose indices are present in another Timeseries.
+    """
+
+    overlap_data = pd.Series(
+        [1312.5], index=[pd.Timestamp("2024-01-01 00:00:00+0000", tz="UTC")]
+    )
+    extended_synthetic_submerged_pressure_timeseries.ts = pd.concat([
+        extended_synthetic_submerged_pressure_timeseries.ts,
+        overlap_data,
+    ])
+
+    masked_ts = synthetic_submerged_timeseries.mask_with(
+        extended_synthetic_submerged_pressure_timeseries, mode="keep"
+    )
+
+    expected_index = pd.Index([pd.Timestamp("2024-01-01 00:00:00+0000", tz="UTC")])
+
+    assert masked_ts.ts.index.equals(expected_index), "Masked Timeseries index mismatch"
+
+    assert len(synthetic_submerged_timeseries.ts) > len(
+        masked_ts.ts
+    ), "Original timeseries was altered"
+
+
 if __name__ == "__main__":
     pytest.main()

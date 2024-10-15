@@ -11,7 +11,7 @@ from sklearn.preprocessing import (
 )
 
 
-class Transform:
+class Transformation:
     def __init__(
         self,
         data: Series,
@@ -62,6 +62,7 @@ class Transform:
         """
         periods = kwargs.get("periods", 1)
         transformed = self.data.diff(periods=periods).dropna()
+
         return (transformed, "difference")
 
     def log(self) -> tuple[Series, str]:
@@ -87,12 +88,11 @@ class Transform:
             for all positive datasets!
 
         Keyword Arguments:
-            lmbda (float): The transformation parameter. Defaults to 0.
+            lmbda (float): The transformation parameter. If not provided, it is automatically estimated.
 
         Returns:
             pandas.Series: The Box-Cox transformed time series data.
         """
-
         lmbda = kwargs.get("lmbda", None)
 
         if (self.data <= 0).any():
@@ -101,14 +101,15 @@ class Transform:
             )
             raise ValueError(message)
 
-        if not lmbda:
-            result = stats.boxcox(self.data, lmbda=lmbda)
-            transformed_series = Series(result, index=self.data.index)
+        # Box-Cox always returns a tuple: (transformed_data, lmbda)
+        if lmbda is not None:
+            transformed_data = stats.boxcox(self.data, lmbda=lmbda)
         else:
-            result = stats.boxcox(self.data, lmbda=lmbda)
-            transformed_series = Series(result[0], index=self.data.index)
+            transformed_data, lmbda = stats.boxcox(self.data, lmbda=lmbda)
 
-        return transformed_series, "box-cox"
+        # Return the transformed series and mark the method used
+        transformed_series = Series(transformed_data, index=self.data.index)
+        return transformed_series, f"box-cox (lambda={lmbda})"
 
     def standard_scaler(self) -> tuple[Series, Any]:
         """Normalize a pandas Series using StandardScaler."""

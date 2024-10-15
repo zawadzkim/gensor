@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from typing import Any, Literal
 
-import numba
 import numpy as np
 from pandas import Series
 from sklearn.ensemble import IsolationForest
@@ -24,13 +24,13 @@ class OutlierDetection:
         self,
         data: Series,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
-        rolling: bool = False,
-        window: int = 6,
+        rolling: bool,
+        window: int,
         **kwargs: Any,
     ) -> None:
         """Find outliers in a time series using the specified method, with an option for rolling window."""
 
-        FUNCS = {
+        FUNCS: dict[str, Callable] = {
             "iqr": self.iqr,
             "zscore": self.zscore,
             "isolation_forest": self.isolation_forest,
@@ -40,6 +40,7 @@ class OutlierDetection:
         method_func = FUNCS[method]
 
         if method in ["iqr", "zscore"]:
+            # For 'iqr' and 'zscore' methods
             y = (
                 kwargs.get("k", 1.5)
                 if method == "iqr"
@@ -47,17 +48,20 @@ class OutlierDetection:
             )
             if rolling:
                 roll = data.rolling(window=window)
-                mask = roll.apply(lambda x: method_func(x, y), raw=True, engine="numba")
+                mask = roll.apply(lambda x: method_func(x, y, rolling=True), raw=True)
             else:
-                mask = method_func(data.to_numpy(), y)
+                mask = method_func(data.to_numpy(), y, rolling=False)
 
-        bool_mask = mask.astype(bool)
-        bool_mask_series = Series(bool_mask, index=data.index)
-        self.outliers = data[bool_mask_series]
+            bool_mask = mask.astype(bool)
+            bool_mask_series = Series(bool_mask, index=data.index)
+            self.outliers = data[bool_mask_series]
+
+        else:
+            # For 'isolation_forest' and 'lof' methods
+            self.outliers = method_func(data, **kwargs)
 
     @staticmethod
-    @numba.njit(nogil=True)
-    def iqr(data: np.ndarray, k: float) -> np.ndarray:
+    def iqr(data: np.ndarray, k: float, rolling: bool) -> np.ndarray:
         """Use interquartile range (IQR).
 
         Parameters:
@@ -77,11 +81,17 @@ class OutlierDetection:
         lower_bound = Q1 - k * IQR
         upper_bound = Q3 + k * IQR
 
+        if rolling:
+            return (
+                np.array([1])
+                if (data[-1] < lower_bound or data[-1] > upper_bound)
+                else np.array([0])
+            )
+
         return np.where((data < lower_bound) | (data > upper_bound), 1, 0)
 
     @staticmethod
-    @numba.njit(nogil=True)
-    def zscore(data: np.ndarray, threshold: float) -> np.ndarray:
+    def zscore(data: np.ndarray, threshold: float, rolling: bool) -> np.ndarray:
         """Use the z-score method.
 
         Parameters:
@@ -98,6 +108,9 @@ class OutlierDetection:
         std_dev = np.std(data)
 
         z_scores = np.abs((data - mean) / std_dev)
+
+        if rolling:
+            return np.array([1]) if z_scores[-1] > threshold else np.array([0])
         return np.where(z_scores > threshold, 1, 0)
 
     def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
