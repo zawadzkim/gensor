@@ -1,16 +1,6 @@
-"""
-!!! warning
-
-    Whenever Timeseries objects are created via read_from_csv and use a parser (e.g.,
-    'vanessen'), the timestamps are localized and converted to UTC. Therefore, if the
-    user creates his own timeseries outside the read_from_csv, they should ensure that
-    the timestamps are in UTC format.
-"""
-
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Literal, Self
+from typing import Any, Literal
 
 import pandas as pd
 import pandera as pa
@@ -19,44 +9,17 @@ from matplotlib import pyplot as plt
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from .db import DatabaseConnection
-from .exceptions import IndexOutOfRangeError, TimeseriesNotFound, TimeseriesUnequal
-from .preprocessing import OutlierDetection, Transform
+from gensor.analysis.outliers import OutlierDetection
+from gensor.core.indexer import TimeseriesIndexer
+from gensor.db import DatabaseConnection
+from gensor.exceptions import TimeseriesUnequal
+from gensor.processing.transform import Transformation
 
 ts_schema = pa.SeriesSchema(
     float,
     index=pa.Index(pd.DatetimeTZDtype(tz="UTC"), coerce=False),
     coerce=True,
 )
-
-VARIABLE_TYPES_AND_UNITS = {
-    "temperature": ["degc"],
-    "pressure": ["cmh2o", "mmh2o"],
-    "conductivity": ["ms/cm"],
-    "flux": ["m/s"],
-    "head": ["m asl"],
-    "depth": ["m"],
-}
-
-
-class TimeseriesIndexer:
-    """A wrapper for the Pandas indexers (e.g., loc, iloc) to return Timeseries objects."""
-
-    # marked indexer as Any to silence mypy. BaseIndexer is normally not indexable:
-
-    def __init__(self, parent: Timeseries, indexer: Any):
-        self.parent = parent
-        self.indexer = indexer
-
-    def __getitem__(self, key: str) -> Timeseries:
-        """Allows using the indexer (e.g., loc) and wraps the result in a Timeseries."""
-
-        result = self.indexer[key]
-
-        if isinstance(result, pd.Series):
-            return self.parent.model_copy(update={"ts": result}, deep=True)
-        message = f"Expected pd.Series, but got {type(result)} instead."
-        raise TypeError(message)
 
 
 class Timeseries(pyd.BaseModel):
@@ -112,7 +75,7 @@ class Timeseries(pyd.BaseModel):
         return self.ts.index.max()
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on location, sensor, and variable."""
+        """Check equality based on location, sensor, variable, unit and sensor_alt."""
         if not isinstance(other, Timeseries):
             return NotImplemented
 
@@ -228,7 +191,7 @@ class Timeseries(pyd.BaseModel):
                 transformed timeseries data.
         """
 
-        data, transformation = Transform(
+        data, transformation = Transformation(
             self.ts, method, **transformer_kwargs
         ).get_transformation()
 
@@ -240,6 +203,7 @@ class Timeseries(pyd.BaseModel):
         self,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
         rolling: bool = False,
+        window: int = 6,
         remove: bool = True,
         **kwargs: Any,
     ) -> Timeseries:
@@ -254,7 +218,9 @@ class Timeseries(pyd.BaseModel):
             Updated deep copy of the Timeseries object with outliers,
             optionally removed from the original timeseries.
         """
-        self.outliers = OutlierDetection(self.ts, method, rolling, **kwargs).outliers
+        self.outliers = OutlierDetection(
+            self.ts, method, rolling, window, **kwargs
+        ).outliers
 
         if remove:
             filtered_ts = self.ts.drop(self.outliers.index)
@@ -262,6 +228,36 @@ class Timeseries(pyd.BaseModel):
 
         else:
             return self
+
+    def mask_with(
+        self, other: Timeseries | pd.Series, mode: Literal["keep", "remove"] = "remove"
+    ) -> Timeseries:
+        """
+        Removes records not present in 'other' by index.
+
+        Parameters:
+            other (Timeseries): Another Timeseries whose indices are used to mask the current one.
+            mode (Literal['keep', 'remove']):
+                - 'keep': Retains only the overlapping data.
+                - 'remove': Removes the overlapping data.
+
+        Returns:
+            Timeseries: A new Timeseries object with the filtered data.
+        """
+        if isinstance(other, pd.Series):
+            mask = other
+        elif isinstance(other, Timeseries):
+            mask = other.ts
+
+        if mode == "keep":
+            masked_data = self.ts[self.ts.index.isin(mask.index)]
+        elif mode == "remove":
+            masked_data = self.ts[~self.ts.index.isin(mask.index)]
+        else:
+            message = f"Invalid mode: {mode}. Use 'keep' or 'remove'."
+            raise ValueError(message)
+
+        return self.model_copy(update={"ts": masked_data}, deep=True)
 
     def to_sql(self, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
@@ -376,202 +372,3 @@ class Timeseries(pyd.BaseModel):
         ax.legend()
 
         return fig, ax
-
-
-class Dataset(pyd.BaseModel):
-    """Class to store a collection of timeseries.
-
-    The Dataset class is used to store a collection of Timeseries objects. It
-    is meant to be created when the van Essen CSV file is parsed.
-
-    Attributes:
-        timeseries (list[Timeseries]): A list of Timeseries objects.
-
-    Methods:
-        __iter__: Returns timeseries when iterated over.
-        __len__: Gives the number of timeseries in the Dataset.
-        get_stations: List all unique locations in the dataset.
-        add: Appends a new series to the Dataset or merges series if
-            an equal one exists.
-        align: Aligns the timeseries to a common time axis.
-        plot: Plots the timeseries data.
-    """
-
-    timeseries: list[Timeseries | None] = pyd.Field(default_factory=list)
-
-    def __iter__(self) -> Any:
-        """Allows to iterate directly over the dataset."""
-        return iter(self.timeseries)
-
-    def __len__(self) -> int:
-        """Gives the number of timeseries in the Dataset."""
-        return len(self.timeseries)
-
-    def __repr__(self) -> str:
-        return f"Dataset({len(self)})"
-
-    def __getitem__(self, index: int) -> Timeseries | None:
-        """Retrieve a Timeseries object by its index in the dataset.
-
-        Parameters:
-            index (int): The index of the Timeseries to retrieve.
-
-        Returns:
-            Timeseries: The Timeseries object at the specified index.
-
-        Raises:
-            IndexError: If the index is out of range.
-        """
-        try:
-            return self.timeseries[index]
-        except IndexError:
-            raise IndexOutOfRangeError(index, len(self)) from None
-
-    def get_stations(self) -> list:
-        """List all unique locations in the dataset."""
-        return [ts.location for ts in self.timeseries if ts is not None]
-
-    def add(self, other: Timeseries | list[Timeseries] | Self) -> None:
-        """Appends a new series to the Dataset or merges series if an equal
-        one exists.
-
-        If a Timeseries with the same location, sensor, and variable already
-        exists, merge the new data into the existing Timeseries, dropping
-        duplicate timestamps.
-
-        Parameters:
-            other (Timeseries): The Timeseries object to add.
-        """
-        if isinstance(other, list):
-            for ts in other:
-                if isinstance(ts, Timeseries):
-                    self._add_single_timeseries(ts)
-        elif isinstance(other, Dataset):
-            for ts in other.timeseries:  # type: ignore[assignment]
-                if isinstance(ts, Timeseries):
-                    self._add_single_timeseries(ts)
-        elif isinstance(other, Timeseries):
-            self._add_single_timeseries(other)
-
-        return
-
-    def _add_single_timeseries(self, ts: Timeseries) -> None:
-        """Adds a single Timeseries to the Dataset or merges if an equal one exists."""
-        for i, existing_ts in enumerate(self.timeseries):
-            if existing_ts == ts:
-                self.timeseries[i] = existing_ts.concatenate(ts)
-                return
-
-        self.timeseries.append(ts)
-
-        return
-
-    def filter(
-        self,
-        stations: str | list | None = None,
-        sensors: str | list | None = None,
-        variables: str | list | None = None,
-    ) -> Timeseries | Dataset:
-        """Return a Timeseries or a new Dataset filtered by station, sensor,
-        and/or variable.
-
-        Parameters:
-            station (Optional[str]): The location of the station.
-            sensor (Optional[str]): The sensor identifier.
-            variable (Optional[str]): The variable being measured.
-
-        Returns:
-            Timeseries or Dataset: A single Timeseries if exactly one match is found,
-                                   or a new Dataset if multiple matches are found.
-        """
-
-        if isinstance(stations, str):
-            stations = [stations]
-
-        if isinstance(sensors, str):
-            sensors = [sensors]
-
-        if isinstance(variables, str):
-            variables = [variables]
-
-        matching_timeseries = [
-            ts
-            for ts in self.timeseries
-            if ts is not None
-            if (stations is None or ts.location in stations)
-            and (sensors is None or ts.sensor in sensors)
-            and (variables is None or ts.variable in variables)
-        ]
-
-        if not matching_timeseries:
-            raise TimeseriesNotFound()
-
-        if len(matching_timeseries) == 1:
-            return matching_timeseries[0]
-
-        return self.model_copy(update={"timeseries": matching_timeseries})
-
-    def to_sql(self, db: DatabaseConnection) -> None:
-        for ts in self.timeseries:
-            if ts:
-                ts.to_sql(db)
-        return
-
-    def plot(self, include_outliers: bool = False) -> None:
-        """Plots the timeseries data, grouping by variable type.
-
-        Args:
-            include_outliers (bool): Whether to include outliers in the plot.
-        """
-        # Group timeseries by variable
-        grouped_ts = defaultdict(list)
-        for ts in self.timeseries:
-            if ts:
-                grouped_ts[ts.variable].append(ts)
-
-        # Create a plot for each group of timeseries with the same variable
-        for variable, ts_list in grouped_ts.items():
-            fig, ax = plt.subplots(figsize=(10, 5))
-            for ts in ts_list:
-                ts.plot(include_outliers=include_outliers, ax=ax)
-
-            ax.set_title(f"Timeseries for {variable.capitalize()}")
-            plt.show()
-
-        return
-
-    # def align(self,
-    #             freq: str = 'h',
-    #             inplace: bool = True):
-    #     """Aligns the timeseries to a common time axis.
-
-    #     Args:
-    #         freq (str): The target frequency for resampling.
-    #         inplace (bool): Whether to update the timeseries in place. Defaults to True.
-    #     """
-
-    #     index_sets = [set(serie._resample(freq).index)
-    #                     for serie in self.timeseries]
-
-    #     # Find the intersection of all index sets to get the common dates
-    #     common_dates = set.intersection(*index_sets)
-
-    #     # Sort the common dates since set intersection will not preserve order
-    #     common_dates = sorted(list(common_dates))
-
-    #     aligned_series = []
-
-    #     for serie in self.timeseries:
-    #         serie.copy(deep=True)
-    #         serie.timeseries = serie.timeseries.reindex(
-    #             common_dates).dropna()
-
-    #         aligned_series.append(serie)
-
-    #     if inplace:
-    #         self.timeseries = aligned_series
-    #         return None
-    #     else:
-    #         aligned_series = Dataset(aligned_series)
-
-    #     return aligned_series

@@ -9,10 +9,11 @@ from typing import Any, Literal
 import pandas as pd
 from sqlalchemy import select
 
-from .db.connection import DatabaseConnection
-from .dtypes import Dataset, Timeseries
-from .exceptions import NoFilesToLoad
-from .parse import parse_plain, parse_vanessen_csv
+from ..core.dataset import Dataset
+from ..core.timeseries import Timeseries
+from ..db.connection import DatabaseConnection
+from ..exceptions import NoFilesToLoad
+from ..parse import parse_plain, parse_vanessen_csv
 
 
 def read_from_csv(

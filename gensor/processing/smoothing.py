@@ -2,9 +2,9 @@
 
 from matplotlib import pyplot as plt
 from pandas import Series
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 
-from .dtypes import Timeseries
+from ..core.timeseries import Timeseries
 
 
 def smooth_data(
@@ -37,7 +37,7 @@ def smooth_data(
     smoothed_data_aligned = smoothed_data[valid_indices]
 
     if print_statistics:
-        mse = mean_squared_error(original_data_aligned, smoothed_data_aligned)
+        mse = root_mean_squared_error(original_data_aligned, smoothed_data_aligned)
         print(f"Mean Squared Error of {method}: {mse:.2f}")
 
     if plot:

@@ -9,7 +9,7 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 
-from gensor import Timeseries
+from gensor.core.timeseries import Timeseries
 
 # =================== Test Timeseries methods ================================
 dates = pd.date_range(start="2023-01-01", periods=10, freq="D", tz="UTC")
@@ -55,7 +55,7 @@ def test_box_cox():
     box_cox_values = stats.boxcox(values, lmbda=0)
 
     assert np.allclose(transformed_ts.ts.dropna(), box_cox_values)
-    assert transformed_ts.transformation == "box-cox"
+    assert transformed_ts.transformation == "box-cox (lambda=0)"
 
 
 def test_standard_scaler():
