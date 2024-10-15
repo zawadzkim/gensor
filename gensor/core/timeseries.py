@@ -237,7 +237,7 @@ class Timeseries(pyd.BaseModel):
 
         Parameters:
             other (Timeseries): Another Timeseries whose indices are used to mask the current one.
-            direction (Literal['keep', 'remove']):
+            mode (Literal['keep', 'remove']):
                 - 'keep': Retains only the overlapping data.
                 - 'remove': Removes the overlapping data.
 
@@ -254,7 +254,7 @@ class Timeseries(pyd.BaseModel):
         elif mode == "remove":
             masked_data = self.ts[~self.ts.index.isin(mask.index)]
         else:
-            message = f"Invalid direction: {mode}. Use 'keep' or 'remove'."
+            message = f"Invalid mode: {mode}. Use 'keep' or 'remove'."
             raise ValueError(message)
 
         return self.model_copy(update={"ts": masked_data}, deep=True)

@@ -109,9 +109,9 @@ class Dataset(pyd.BaseModel):
         and/or variable.
 
         Parameters:
-            station (Optional[str]): The location of the station.
-            sensor (Optional[str]): The sensor identifier.
-            variable (Optional[str]): The variable being measured.
+            stations (Optional[str]): The location of the station.
+            sensors (Optional[str]): The sensor identifier.
+            variables (Optional[str]): The variable being measured.
 
         Returns:
             Timeseries or Dataset: A single Timeseries if exactly one match is found,
