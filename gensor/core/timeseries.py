@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 import pandas as pd
 import pandera as pa
@@ -9,11 +9,8 @@ from matplotlib import pyplot as plt
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from gensor.analysis.outliers import OutlierDetection
-from gensor.core.indexer import TimeseriesIndexer
+from gensor.core.base import BaseTimeseries
 from gensor.db import DatabaseConnection
-from gensor.exceptions import TimeseriesUnequal
-from gensor.processing.transform import Transformation
 
 ts_schema = pa.SeriesSchema(
     float,
@@ -22,18 +19,8 @@ ts_schema = pa.SeriesSchema(
 )
 
 
-class Timeseries(pyd.BaseModel):
-    """Timeseries from a sensor including measurement metadata.
-
-    This is class for any sensor timeseries. The basic required attributes are
-    just the ts, variable and unit. SensorInfo object is created from the
-    relevant kwargs if they are passed.
-
-    Timeseries represents a series of measurements of a single variable, from a
-    single sensor with unique timestamps.
-
-    TODO: Perhaps it would be cool to implement kind of a tracking of which
-    analyses were performed on the timeseries?
+class Timeseries(BaseTimeseries):
+    """Timeseries for groundwater sensor data
 
     Attributes:
         ts (pd.Series): The timeseries data.
@@ -42,8 +29,6 @@ class Timeseries(pyd.BaseModel):
         unit (Literal['degC', 'mmH2O', 'mS/cm', 'm/s']): The unit of
             the measurement.
         sensor (SensorInfo): The serial number of the sensor.
-        analysis (Analysis): An object containing details of analysis done
-            on the timeseries.
 
     Methods:
         validate_ts: if the pd.Series is not exactly what is required, coerce.
@@ -53,26 +38,8 @@ class Timeseries(pyd.BaseModel):
         arbitrary_types_allowed=True, validate_assignment=True
     )
 
-    ts: pd.Series = pyd.Field(repr=False)
-    variable: Literal[
-        "temperature", "pressure", "conductivity", "flux", "head", "depth"
-    ]
-    unit: Literal["degc", "cmh2o", "ms/cm", "m/s", "m asl", "m"]
-    location: str | None = None
     sensor: str | None = None
     sensor_alt: float | None = None
-    outliers: pd.Series | None = pyd.Field(default=None, repr=False)
-    transformation: Any = pyd.Field(default=None, repr=False)
-
-    @pyd.computed_field()  # type: ignore[prop-decorator]
-    @property
-    def start(self) -> pd.Timestamp | Any:
-        return self.ts.index.min()
-
-    @pyd.computed_field()  # type: ignore[prop-decorator]
-    @property
-    def end(self) -> pd.Timestamp | Any:
-        return self.ts.index.max()
 
     def __eq__(self, other: object) -> bool:
         """Check equality based on location, sensor, variable, unit and sensor_alt."""
@@ -86,178 +53,6 @@ class Timeseries(pyd.BaseModel):
             and self.sensor == other.sensor
             and self.sensor_alt == other.sensor_alt
         )
-
-    def __getattr__(self, attr: Any) -> Any:
-        """Delegate attribute access to the underlying pandas Series if it exists.
-
-        Special handling is implemented for pandas indexer.
-        """
-        if attr == "loc":
-            return TimeseriesIndexer(self, self.ts.loc)
-
-        error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
-
-        if hasattr(self.ts, attr):
-            # Return a function to call on the `ts` if it's a method, otherwise return the attribute
-            ts_attr = getattr(self.ts, attr)
-            if callable(ts_attr):
-
-                def wrapper(*args: Any, **kwargs: Any) -> Any:
-                    result = ts_attr(*args, **kwargs)
-                    # If the result is a Series, return a new Timeseries; otherwise, return the result
-                    if isinstance(result, pd.Series):
-                        return self.model_copy(update={"ts": result}, deep=True)
-                    return result
-
-                return wrapper
-            else:
-                return ts_attr
-        raise AttributeError(error_message)
-
-    @pyd.field_validator("ts")
-    def validate_ts(cls, v: pd.Series) -> pd.Series:
-        validated_ts = ts_schema.validate(v)
-
-        return validated_ts
-
-    @pyd.field_validator("outliers")
-    def validate_outliers(cls, v: pd.Series) -> pd.Series:
-        if v is not None:
-            return ts_schema.validate(v)
-        return v
-
-    def concatenate(self, other: Timeseries) -> Timeseries:
-        """Concatenate two Timeseries objects if they are considered equal."""
-        if not isinstance(other, Timeseries):
-            return NotImplemented
-
-        if self == other:
-            combined_ts = pd.concat([self.ts, other.ts]).sort_index()
-            combined_ts = combined_ts[~combined_ts.index.duplicated(keep="first")]
-
-            return self.model_copy(update={"ts": combined_ts})
-        else:
-            raise TimeseriesUnequal()
-
-    def resample(
-        self,
-        freq: Any,
-        agg_func: Any = pd.Series.mean,
-        **resample_kwargs: Any,
-    ) -> Timeseries:
-        """Resample the timeseries to a new frequency with a specified
-        aggregation function.
-
-        Parameters:
-            freq (Any): The offset string or object representing target conversion
-                (e.g., 'D' for daily, 'W' for weekly).
-            agg_func (Any): The aggregation function to apply
-                after resampling. Defaults to pd.Series.mean.
-            **resample_kwargs: Additional keyword arguments passed to the
-                pandas.Series.resample method.
-
-        Returns:
-            Updated deep copy of the Timeseries object with the
-                resampled timeseries data.
-        """
-        resampled_ts = self.ts.resample(freq, **resample_kwargs).apply(agg_func)
-
-        return self.model_copy(update={"ts": resampled_ts}, deep=True)
-
-    def transform(
-        self,
-        method: Literal[
-            "difference",
-            "log",
-            "square_root",
-            "box_cox",
-            "standard_scaler",
-            "minmax_scaler",
-            "robust_scaler",
-            "maxabs_scaler",
-        ],
-        **transformer_kwargs: Any,
-    ) -> Timeseries:
-        """Transforms the timeseries using the specified method.
-
-        Parameters:
-            method (str): The method to use for transformation ('minmax',
-                'standard', 'robust').
-            transformer_kwargs: Additional keyword arguments passed to the
-                transformer definition. See gensor.preprocessing.
-
-        Returns:
-            Updated deep copy of the Timeseries object with the
-                transformed timeseries data.
-        """
-
-        data, transformation = Transformation(
-            self.ts, method, **transformer_kwargs
-        ).get_transformation()
-
-        return self.model_copy(
-            update={"ts": data, "transformation": transformation}, deep=True
-        )
-
-    def detect_outliers(
-        self,
-        method: Literal["iqr", "zscore", "isolation_forest", "lof"],
-        rolling: bool = False,
-        window: int = 6,
-        remove: bool = True,
-        **kwargs: Any,
-    ) -> Timeseries:
-        """Detects outliers in the timeseries using the specified method.
-
-        Parameters:
-            method (Literal['iqr', 'zscore', 'isolation_forest', 'lof']): The
-                method to use for outlier detection.
-            **kwargs: Additional kewword arguments for OutlierDetection.
-
-        Returns:
-            Updated deep copy of the Timeseries object with outliers,
-            optionally removed from the original timeseries.
-        """
-        self.outliers = OutlierDetection(
-            self.ts, method, rolling, window, **kwargs
-        ).outliers
-
-        if remove:
-            filtered_ts = self.ts.drop(self.outliers.index)
-            return self.model_copy(update={"ts": filtered_ts}, deep=True)
-
-        else:
-            return self
-
-    def mask_with(
-        self, other: Timeseries | pd.Series, mode: Literal["keep", "remove"] = "remove"
-    ) -> Timeseries:
-        """
-        Removes records not present in 'other' by index.
-
-        Parameters:
-            other (Timeseries): Another Timeseries whose indices are used to mask the current one.
-            mode (Literal['keep', 'remove']):
-                - 'keep': Retains only the overlapping data.
-                - 'remove': Removes the overlapping data.
-
-        Returns:
-            Timeseries: A new Timeseries object with the filtered data.
-        """
-        if isinstance(other, pd.Series):
-            mask = other
-        elif isinstance(other, Timeseries):
-            mask = other.ts
-
-        if mode == "keep":
-            masked_data = self.ts[self.ts.index.isin(mask.index)]
-        elif mode == "remove":
-            masked_data = self.ts[~self.ts.index.isin(mask.index)]
-        else:
-            message = f"Invalid mode: {mode}. Use 'keep' or 'remove'."
-            raise ValueError(message)
-
-        return self.model_copy(update={"ts": masked_data}, deep=True)
 
     def to_sql(self, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
