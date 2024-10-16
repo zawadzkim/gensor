@@ -25,17 +25,10 @@ ts_schema = pa.SeriesSchema(
 
 
 class BaseTimeseries(pyd.BaseModel):
-    """Timeseries from a sensor including measurement metadata.
+    """Generic base class for timeseries with metadata.
 
-    This is class for any sensor timeseries. The basic required attributes are
-    just the ts, variable and unit. SensorInfo object is created from the
-    relevant kwargs if they are passed.
-
-    Timeseries represents a series of measurements of a single variable, from a
-    single sensor with unique timestamps.
-
-    TODO: Perhaps it would be cool to implement kind of a tracking of which
-    analyses were performed on the timeseries?
+    Timeseries is a series of measurements of a single variable, in the same unit, from a
+    single location with unique timestamps.
 
     Attributes:
         ts (pd.Series): The timeseries data.
@@ -43,6 +36,8 @@ class BaseTimeseries(pyd.BaseModel):
             The type of the measurement.
         unit (Literal['degC', 'mmH2O', 'mS/cm', 'm/s']): The unit of
             the measurement.
+        outliers (pd.Series): Measurements marked as outliers.
+        transformation (Any): Metadata of transformation the timeseries undergone.
 
     Methods:
         validate_ts: if the pd.Series is not exactly what is required, coerce.
@@ -71,9 +66,9 @@ class BaseTimeseries(pyd.BaseModel):
     def end(self) -> pd.Timestamp | Any:
         return self.ts.index.max()
 
-    def __eq__(self, other: T) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check equality based on location, sensor, variable, unit and sensor_alt."""
-        if not isinstance(other, T):
+        if not isinstance(other, BaseTimeseries):
             return NotImplemented
 
         return (
@@ -121,9 +116,9 @@ class BaseTimeseries(pyd.BaseModel):
             return ts_schema.validate(v)
         return v
 
-    def concatenate(self, other: T) -> T:
+    def concatenate(self: T, other: T) -> T:
         """Concatenate two Timeseries objects if they are considered equal."""
-        if not isinstance(other, T):
+        if not isinstance(other, type(self)):
             return NotImplemented
 
         if self == other:
@@ -135,7 +130,7 @@ class BaseTimeseries(pyd.BaseModel):
             raise TimeseriesUnequal()
 
     def resample(
-        self,
+        self: T,
         freq: Any,
         agg_func: Any = pd.Series.mean,
         **resample_kwargs: Any,
@@ -160,7 +155,7 @@ class BaseTimeseries(pyd.BaseModel):
         return self.model_copy(update={"ts": resampled_ts}, deep=True)
 
     def transform(
-        self,
+        self: T,
         method: Literal[
             "difference",
             "log",
@@ -195,7 +190,7 @@ class BaseTimeseries(pyd.BaseModel):
         )
 
     def detect_outliers(
-        self,
+        self: T,
         method: Literal["iqr", "zscore", "isolation_forest", "lof"],
         rolling: bool = False,
         window: int = 6,
@@ -225,7 +220,7 @@ class BaseTimeseries(pyd.BaseModel):
             return self
 
     def mask_with(
-        self, other: T | pd.Series, mode: Literal["keep", "remove"] = "remove"
+        self: T, other: T | pd.Series, mode: Literal["keep", "remove"] = "remove"
     ) -> T:
         """
         Removes records not present in 'other' by index.
@@ -241,7 +236,7 @@ class BaseTimeseries(pyd.BaseModel):
         """
         if isinstance(other, pd.Series):
             mask = other
-        elif isinstance(other, T):
+        elif isinstance(other, BaseTimeseries):
             mask = other.ts
 
         if mode == "keep":
@@ -254,7 +249,7 @@ class BaseTimeseries(pyd.BaseModel):
 
         return self.model_copy(update={"ts": masked_data}, deep=True)
 
-    def to_sql(self, db: DatabaseConnection) -> str:
+    def to_sql(self: T, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
 
         The Timeseries data is uploaded to the SQL database by using the pandas
@@ -328,7 +323,7 @@ class BaseTimeseries(pyd.BaseModel):
         return f"{schema_name} table and metadata updated."
 
     def plot(
-        self, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any
+        self: T, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any
     ) -> tuple:
         """Plots the timeseries data.
 
