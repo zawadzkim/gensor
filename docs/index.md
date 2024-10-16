@@ -5,10 +5,25 @@
 [![Commit activity](https://img.shields.io/github/commit-activity/m/zawadzkim/gensor)](https://img.shields.io/github/commit-activity/m/zawadzkim/gensor)
 [![License](https://img.shields.io/github/license/zawadzkim/gensor)](https://img.shields.io/github/license/zawadzkim/gensor)
 
-Python library allowing to load and analyze Groundwater sensor: G(s)ensor.
+Python library allowing to load, parse and analyze Groundwater sensor data from files: G(s)ensor.
 
-!!! note
+!!! warning
 
-    some note here
+    Do mind that this package is in active development. API changes can (and probably will) happen. If  you like this package but it is lacking some functionality you need, do not hesitate to submit an issue in Github and/or contribute!
 
-Gensor provides functionality for loading sensor data from files. Among such variability of formats across the industry, parsers have to be implemented for each separately. For now only parser for van essen instruments is predefined.
+## Supported sensor formats
+
+Each company producing sensors has their own data formats used for data exchange. Sometimes they also include common formats, like CSV, as export method, but still they come uniquely structured. Gensor, as of the first release, has a `read_from_csv()` function used to read timeseries from data exported from sensors which requires to indicate which format is being used. Based on the user choice, an appropriate parser is selected, which is preconfigured for a particular brand of sensors.
+
+As of now, the only pre-configured parser implemented is one for van Essen instruments. The developers hope, that with the contributions from the community, we can include more prewritten formats with tests and examples, so not everybody has to parse the files themselves each time.
+
+### van Essen format
+
+##### What do the van Essen Instruments loggers measure?
+
+The loggers measure the abolute pressure at the membrane of the sensor, therefore the datasets require compensation for barometric pressure.
+
+##### How the data from van Essen instruments is collected?
+
+If the loggers are not equipped with some kind of telemetric system (which is the case most of the times), it is necessary to go to the field once in a while and collect the data. That is done either with a laptop (using DiverOffice or DiverField software) or a small handheld device called DiverMate and an Android device. Each time the data is collected, a timeseries is generated (that includes old records that may have been already collected before and are stored in another CSV file).
+Normall, in Project Grow we collect the data every two months with DiverMate and then share the CSV files to Google Drive. Each time we export the data, we end up with a new CSV file that need to be merged to obtain a consistent timeseries.
