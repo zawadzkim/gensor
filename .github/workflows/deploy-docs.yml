@@ -28,7 +28,7 @@ jobs:
         run: poetry install
 
       - name: Build MkDocs site
-        run: poetry mkdocs gh-deploy --config-file mkdocs.yml --force
+        run: poetry run mkdocs gh-deploy --config-file mkdocs.yml --force
 
   deploy_mkdocs:
     needs: build_mkdocs
