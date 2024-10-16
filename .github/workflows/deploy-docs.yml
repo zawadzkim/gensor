@@ -30,8 +30,23 @@ jobs:
       - name: Build MkDocs site
         run: poetry run mkdocs build --config-file mkdocs.yml
 
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+  deploy_mkdocs:
+    needs: build_mkdocs
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          # Ensure the build output folder is correct
-          folder: ./site
+          ref: gh-pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
