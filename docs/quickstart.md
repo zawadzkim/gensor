@@ -11,3 +11,5 @@ You can upgrade gensor if there is a new release by typing
 ```shell
 pip install gensor --upgrade
 ```
+
+Follow the tutorials to learn how to use the package.
