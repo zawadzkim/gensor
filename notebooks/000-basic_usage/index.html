@@ -944,16 +944,16 @@ ts.model_dump()
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
 <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[2]:</div>
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
-<pre>{'ts': 2024-01-01 00:00:00+00:00    1049.393115
- 2024-01-01 01:00:00+00:00    1000.086334
- 2024-01-01 02:00:00+00:00     994.252823
- 2024-01-01 03:00:00+00:00    1029.198101
- 2024-01-01 04:00:00+00:00    1038.189541
- 2024-01-01 05:00:00+00:00     988.457713
- 2024-01-01 06:00:00+00:00    1025.889672
- 2024-01-01 07:00:00+00:00    1046.904440
- 2024-01-01 08:00:00+00:00    1009.442914
- 2024-01-01 09:00:00+00:00    1032.753341
+<pre>{'ts': 2024-01-01 00:00:00+00:00    1030.997537
+ 2024-01-01 01:00:00+00:00     994.813837
+ 2024-01-01 02:00:00+00:00    1030.794149
+ 2024-01-01 03:00:00+00:00     994.910894
+ 2024-01-01 04:00:00+00:00    1035.224133
+ 2024-01-01 05:00:00+00:00    1037.560084
+ 2024-01-01 06:00:00+00:00    1049.395122
+ 2024-01-01 07:00:00+00:00    1004.061936
+ 2024-01-01 08:00:00+00:00     994.518299
+ 2024-01-01 09:00:00+00:00    1043.914201
  Freq: h, Name: Barometric Pressure, dtype: float64,
  'variable': 'pressure',
  'unit': 'cmh2o',
@@ -1525,7 +1525,7 @@ compensated_ds = gs.compensate(groundwater_ds, baro, fieldwork_dates=fieldwork_d
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p>As you can see, the measurements are now expressed as head and units changed to m asl. The compensation worked, but there are still some visible outliers. We will tackle this problem in the next tutorial <a href="../001-transformation-and-outliers">Example 2: Transformation and outlier detection</a>.</p>
-<p>If you are interested in creating a dataset and saving it in a sqlite database, follow <a href="../002-sqlite-integration.ipynb">Example 3: SQLite integration</a></p>
+<p>If you are interested in creating a dataset and saving it in a sqlite database, follow <a href="../002-sqlite-integration">Example 3: SQLite integration</a></p>
 </div>
 </div>
 </div>
