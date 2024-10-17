@@ -42,7 +42,7 @@ def read_from_csv(
         raise TypeError(message)
 
     if path.is_dir() and not any(
-        file.is_file() and file.suffix == ".csv" for file in path.iterdir()
+        file.is_file() and file.suffix.lower() == ".csv" for file in path.iterdir()
     ):
         raise NoFilesToLoad()
 
