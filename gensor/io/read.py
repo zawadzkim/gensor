@@ -47,10 +47,14 @@ def read_from_csv(
         raise NoFilesToLoad()
 
     files = (
-        [file for file in path.iterdir() if file.is_file() and file.suffix == ".csv"]
+        [
+            file
+            for file in path.iterdir()
+            if file.is_file() and file.suffix.lower() == ".csv"
+        ]
         if path.is_dir()
         else [path]
-        if path.suffix == ".csv"
+        if path.suffix.lower() == ".csv"
         else []
     )
 
