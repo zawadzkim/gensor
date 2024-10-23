@@ -5,6 +5,7 @@
 - test_timeseries_invalid_schema: Check if an error is raised if the timeseries contains non-float convertible values.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaError
@@ -92,6 +93,63 @@ def test_mask_with(
     assert len(synthetic_submerged_timeseries.ts) > len(
         masked_ts.ts
     ), "Original timeseries was altered"
+
+
+# =================================== Test indexing ====================================
+
+
+def test_loc_single_timestamp(synthetic_submerged_timeseries):
+    """Test the loc indexer for a single timestamp."""
+    result = synthetic_submerged_timeseries.loc["2024-01-01 01:00:00+00:00"]
+    assert isinstance(result, np.float64)
+    assert result == 1312.00
+
+
+def test_loc_timestamp_range(synthetic_submerged_timeseries):
+    """Test the loc indexer for a timestamp range."""
+    result = synthetic_submerged_timeseries.loc[
+        "2024-01-01 01:00:00+00:00":"2024-01-01 02:00:00+00:00"
+    ]
+    assert isinstance(result, Timeseries)
+    pd.testing.assert_series_equal(
+        result.ts,
+        synthetic_submerged_timeseries.ts.loc[
+            "2024-01-01 01:00:00+00:00":"2024-01-01 02:00:00+00:00"
+        ],
+    )
+
+
+def test_iloc_single_position(synthetic_submerged_timeseries):
+    """Test the iloc indexer for a single positional index."""
+    result = synthetic_submerged_timeseries.iloc[2]
+    assert isinstance(result, np.float64)
+    assert result == 1310.00
+
+
+def test_iloc_range(synthetic_submerged_timeseries):
+    """Test the iloc indexer for a positional range."""
+    result = synthetic_submerged_timeseries.iloc[0:2]
+    assert isinstance(result, Timeseries)
+    pd.testing.assert_series_equal(
+        result.ts, synthetic_submerged_timeseries.ts.iloc[0:2]
+    )
+
+
+# =================================== Test equality ====================================
+def test_equal_timeseries(synthetic_submerged_timeseries):
+    data = synthetic_submerged_timeseries
+    other = synthetic_submerged_timeseries.model_copy(deep=True)
+
+    assert data == other
+
+
+def test_unequal_timeseries(synthetic_submerged_timeseries):
+    data = synthetic_submerged_timeseries
+    other = synthetic_submerged_timeseries.model_copy(
+        deep=True, update={"variable": "temperature"}
+    )
+
+    assert data != other
 
 
 if __name__ == "__main__":

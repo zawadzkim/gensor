@@ -5,7 +5,6 @@ from typing import Any
 import pandas as pd
 import pandera as pa
 import pydantic as pyd
-from matplotlib import pyplot as plt
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -46,13 +45,10 @@ class Timeseries(BaseTimeseries):
         if not isinstance(other, Timeseries):
             return NotImplemented
 
-        return (
-            self.variable == other.variable
-            and self.unit == other.unit
-            and self.location == other.location
-            and self.sensor == other.sensor
-            and self.sensor_alt == other.sensor_alt
-        )
+        if not super().__eq__(other):
+            return False
+
+        return self.sensor == other.sensor and self.sensor_alt == other.sensor_alt
 
     def to_sql(self, db: DatabaseConnection) -> str:
         """Converts the timeseries to a list of dictionaries and uploads it to the database.
@@ -142,28 +138,8 @@ class Timeseries(BaseTimeseries):
         Returns:
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
-        # Create new figure and axes if not provided
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(10, 5))
-        else:
-            fig = ax.get_figure()
+        fig, ax = super().plot(include_outliers=include_outliers, ax=ax, **plot_kwargs)
 
-        ax.plot(
-            self.ts.index,
-            self.ts,
-            label=f"{self.location} ({self.sensor})",
-            **plot_kwargs,
-        )
-
-        if include_outliers and self.outliers is not None:
-            ax.scatter(
-                self.outliers.index, self.outliers, color="red", label="Outliers"
-            )
-        plt.xticks(rotation=45)
-        ax.set_xlabel("Time")
-        ax.set_ylabel(f"{self.variable} ({self.unit})")
-        ax.set_title(f"{self.variable.capitalize()} at {self.location}")
-
-        ax.legend()
+        ax.set_title(f"{self.variable.capitalize()} at {self.location} ({self.sensor})")
 
         return fig, ax
