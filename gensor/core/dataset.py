@@ -5,6 +5,8 @@ from typing import Any, Self
 
 import pydantic as pyd
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from gensor.core.timeseries import Timeseries
 from gensor.db import DatabaseConnection
@@ -150,7 +152,7 @@ class Dataset(pyd.BaseModel):
                 ts.to_sql(db)
         return
 
-    def plot(self, include_outliers: bool = False) -> None:
+    def plot(self, include_outliers: bool = False) -> tuple[Figure, Axes]:
         """Plots the timeseries data, grouping by variable type.
 
         Args:
@@ -162,13 +164,23 @@ class Dataset(pyd.BaseModel):
             if ts:
                 grouped_ts[ts.variable].append(ts)
 
-        # Create a plot for each group of timeseries with the same variable
-        for variable, ts_list in grouped_ts.items():
-            fig, ax = plt.subplots(figsize=(10, 5))
+        # Create subplots sharing the x-axis
+        num_variables = len(grouped_ts)
+        fig, axes = plt.subplots(
+            num_variables, 1, figsize=(10, 5 * num_variables), sharex=True
+        )
+
+        # If there's only one variable, axes may not be a list
+        if num_variables == 1:
+            axes = [axes]
+
+        # Plot each group of timeseries into its own subplot
+        for ax, (variable, ts_list) in zip(axes, grouped_ts.items(), strict=False):
             for ts in ts_list:
                 ts.plot(include_outliers=include_outliers, ax=ax)
 
             ax.set_title(f"Timeseries for {variable.capitalize()}")
-            plt.show()
+            ax.set_xlabel("Time")
 
-        return
+        fig.tight_layout()
+        return fig, axes

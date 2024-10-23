@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 
 from gensor import read_from_csv
+from gensor.core.dataset import Dataset
 from gensor.core.timeseries import Timeseries
 from gensor.db import DatabaseConnection
 
@@ -140,6 +141,19 @@ def synthetic_temperature_timeseries():
         location="Station B",
         sensor="Sensor 2",
     )
+
+
+@pytest.fixture
+def synthetic_dataset(synthetic_submerged_timeseries):
+    """Create a Dataset with two Timeseries."""
+    # Create a second timeseries by copying the first and updating some values
+    ts1 = synthetic_submerged_timeseries
+    ts2 = ts1.model_copy(update={"location": "Station B", "sensor": "Sensor 2"})
+
+    # Create a dataset containing both timeseries
+    dataset = Dataset(timeseries=[ts1, ts2])
+
+    return dataset
 
 
 # ============================ Sample timeseries van Essen =============================
