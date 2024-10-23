@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 
@@ -23,5 +24,9 @@ class TimeseriesIndexer:
 
         if isinstance(result, pd.Series):
             return self.parent.model_copy(update={"ts": result}, deep=True)
+
+        if isinstance(result, (int | float | str | pd.Timestamp | np.float64)):
+            return result
+
         message = f"Expected pd.Series, but got {type(result)} instead."
         raise TypeError(message)

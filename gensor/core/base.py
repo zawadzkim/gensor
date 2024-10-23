@@ -85,6 +85,9 @@ class BaseTimeseries(pyd.BaseModel):
         if attr == "loc":
             return TimeseriesIndexer(self, self.ts.loc)
 
+        if attr == "iloc":
+            return TimeseriesIndexer(self, self.ts.iloc)
+
         error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
 
         if hasattr(self.ts, attr):
@@ -97,6 +100,7 @@ class BaseTimeseries(pyd.BaseModel):
                     # If the result is a Series, return a new Timeseries; otherwise, return the result
                     if isinstance(result, pd.Series):
                         return self.model_copy(update={"ts": result}, deep=True)
+
                     return result
 
                 return wrapper
