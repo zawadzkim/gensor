@@ -146,11 +146,10 @@ def synthetic_temperature_timeseries():
 @pytest.fixture
 def synthetic_dataset(synthetic_submerged_timeseries):
     """Create a Dataset with two Timeseries."""
-    # Create a second timeseries by copying the first and updating some values
+
     ts1 = synthetic_submerged_timeseries
     ts2 = ts1.model_copy(update={"location": "Station B", "sensor": "Sensor 2"})
 
-    # Create a dataset containing both timeseries
     dataset = Dataset(timeseries=[ts1, ts2])
 
     return dataset

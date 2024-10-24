@@ -1,38 +1,26 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Self
+from typing import Any, Generic
 
 import pydantic as pyd
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from gensor.core.timeseries import Timeseries
+from gensor.core.base import BaseTimeseries, T
 from gensor.db import DatabaseConnection
-from gensor.exceptions import IndexOutOfRangeError, TimeseriesNotFound
+from gensor.exceptions import IndexOutOfRangeError
 
 
-class Dataset(pyd.BaseModel):
-    """Class to store a collection of timeseries.
-
-    The Dataset class is used to store a collection of Timeseries objects. It
-    is meant to be created when the van Essen CSV file is parsed.
+class Dataset(pyd.BaseModel, Generic[T]):
+    """Class to store and operate on a collection of Timeseries.
 
     Attributes:
         timeseries (list[Timeseries]): A list of Timeseries objects.
-
-    Methods:
-        __iter__: Returns timeseries when iterated over.
-        __len__: Gives the number of timeseries in the Dataset.
-        get_stations: List all unique locations in the dataset.
-        add: Appends a new series to the Dataset or merges series if
-            an equal one exists.
-        align: Aligns the timeseries to a common time axis.
-        plot: Plots the timeseries data.
     """
 
-    timeseries: list[Timeseries | None] = pyd.Field(default_factory=list)
+    timeseries: list[T | None] = pyd.Field(default_factory=list)
 
     def __iter__(self) -> Any:
         """Allows to iterate directly over the dataset."""
@@ -45,7 +33,7 @@ class Dataset(pyd.BaseModel):
     def __repr__(self) -> str:
         return f"Dataset({len(self)})"
 
-    def __getitem__(self, index: int) -> Timeseries | None:
+    def __getitem__(self, index: int) -> T | None:
         """Retrieve a Timeseries object by its index in the dataset.
 
         Parameters:
@@ -62,35 +50,33 @@ class Dataset(pyd.BaseModel):
         except IndexError:
             raise IndexOutOfRangeError(index, len(self)) from None
 
-    def get_stations(self) -> list:
+    def get_locations(self) -> list:
         """List all unique locations in the dataset."""
         return [ts.location for ts in self.timeseries if ts is not None]
 
-    def add(self, other: Timeseries | list[Timeseries] | Self) -> None:
-        """Appends a new series to the Dataset or merges series if an equal
-        one exists.
+    def add(self, other: T | list[T] | Dataset) -> Dataset:
+        """Appends a new series to the Dataset.
 
-        If a Timeseries with the same location, sensor, and variable already
-        exists, merge the new data into the existing Timeseries, dropping
-        duplicate timestamps.
+        If an equal Timeseries already exists, merge the new data into the existing
+        Timeseries, dropping duplicate timestamps.
 
         Parameters:
             other (Timeseries): The Timeseries object to add.
         """
-        if isinstance(other, list):
+
+        # I need to check for BaseTimeseries instance in the add() method, but also
+        # type hint VarType T.
+        if isinstance(other, list | Dataset):
             for ts in other:
-                if isinstance(ts, Timeseries):
-                    self._add_single_timeseries(ts)
-        elif isinstance(other, Dataset):
-            for ts in other.timeseries:  # type: ignore[assignment]
-                if isinstance(ts, Timeseries):
-                    self._add_single_timeseries(ts)
-        elif isinstance(other, Timeseries):
+                if isinstance(ts, BaseTimeseries):
+                    self._add_single_timeseries(ts)  # type: ignore[arg-type]
+
+        elif isinstance(other, BaseTimeseries):
             self._add_single_timeseries(other)
 
-        return
+        return self
 
-    def _add_single_timeseries(self, ts: Timeseries) -> None:
+    def _add_single_timeseries(self, ts: T) -> None:
         """Adds a single Timeseries to the Dataset or merges if an equal one exists."""
         for i, existing_ts in enumerate(self.timeseries):
             if existing_ts == ts:
@@ -103,10 +89,11 @@ class Dataset(pyd.BaseModel):
 
     def filter(
         self,
-        stations: str | list | None = None,
-        sensors: str | list | None = None,
-        variables: str | list | None = None,
-    ) -> Timeseries | Dataset:
+        location: str | list | None = None,
+        variable: str | list | None = None,
+        unit: str | list | None = None,
+        **kwargs: dict[str, str | list],
+    ) -> T | Dataset:
         """Return a Timeseries or a new Dataset filtered by station, sensor,
         and/or variable.
 
@@ -120,26 +107,35 @@ class Dataset(pyd.BaseModel):
                                    or a new Dataset if multiple matches are found.
         """
 
-        if isinstance(stations, str):
-            stations = [stations]
+        def matches(ts: T, attr: str, value: dict[str, str | list]) -> bool | None:
+            """Check if the Timeseries object has the attribute and if it matches the value."""
+            if not hasattr(ts, attr):
+                message = f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
+                raise AttributeError(message)
+            return getattr(ts, attr) in value
 
-        if isinstance(sensors, str):
-            sensors = [sensors]
-
-        if isinstance(variables, str):
-            variables = [variables]
+        if isinstance(location, str):
+            location = [location]
+        if isinstance(variable, str):
+            variable = [variable]
+        if isinstance(unit, str):
+            unit = [unit]
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                kwargs[key] = [value]
 
         matching_timeseries = [
             ts
             for ts in self.timeseries
             if ts is not None
-            if (stations is None or ts.location in stations)
-            and (sensors is None or ts.sensor in sensors)
-            and (variables is None or ts.variable in variables)
+            and (location is None or ts.location in location)
+            and (variable is None or ts.variable in variable)
+            and (unit is None or ts.unit in unit)
+            and all(matches(ts, attr, value) for attr, value in kwargs.items())
         ]
 
         if not matching_timeseries:
-            raise TimeseriesNotFound()
+            return Dataset()
 
         if len(matching_timeseries) == 1:
             return matching_timeseries[0]
@@ -158,23 +154,20 @@ class Dataset(pyd.BaseModel):
         Args:
             include_outliers (bool): Whether to include outliers in the plot.
         """
-        # Group timeseries by variable
+
         grouped_ts = defaultdict(list)
         for ts in self.timeseries:
             if ts:
                 grouped_ts[ts.variable].append(ts)
 
-        # Create subplots sharing the x-axis
         num_variables = len(grouped_ts)
         fig, axes = plt.subplots(
             num_variables, 1, figsize=(10, 5 * num_variables), sharex=True
         )
 
-        # If there's only one variable, axes may not be a list
         if num_variables == 1:
             axes = [axes]
 
-        # Plot each group of timeseries into its own subplot
         for ax, (variable, ts_list) in zip(axes, grouped_ts.items(), strict=False):
             for ts in ts_list:
                 ts.plot(include_outliers=include_outliers, ax=ax)

@@ -59,7 +59,7 @@ def read_from_csv(
     )
 
     parser = parsers[file_format]
-    ds = Dataset()
+    ds: Dataset = Dataset()
     for f in files:
         print(f"Loading file: {f}")
         ts_in_file = parser(f, **kwargs)
