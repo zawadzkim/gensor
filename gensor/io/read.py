@@ -12,7 +12,6 @@ from sqlalchemy import select
 from ..core.dataset import Dataset
 from ..core.timeseries import Timeseries
 from ..db.connection import DatabaseConnection
-from ..exceptions import NoFilesToLoad
 from ..parse import parse_plain, parse_vanessen_csv
 
 
@@ -44,7 +43,8 @@ def read_from_csv(
     if path.is_dir() and not any(
         file.is_file() and file.suffix.lower() == ".csv" for file in path.iterdir()
     ):
-        raise NoFilesToLoad()
+        print("No CSV files found. Operation skipped.")
+        return Dataset()
 
     files = (
         [
