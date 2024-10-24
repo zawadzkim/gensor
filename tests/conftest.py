@@ -16,6 +16,7 @@ Fixtures:
 """
 
 import os
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -205,3 +206,23 @@ def pb02a_plain_timeseries() -> Timeseries:
 @pytest.fixture
 def pb01a_fieldwork() -> list:
     return {"PB01A": ["2020-08-25"]}
+
+
+@pytest.fixture
+def plain_csv_file(tmp_path: Path) -> Path:
+    PLAIN_CSV_CONTENT = """timestamp,pressure
+    2024-01-01 00:00:00,1013
+    2024-01-01 01:00:00,1012
+    2024-01-01 02:00:00,1011
+    """
+    """Creates a temporary plain CSV file with timestamp and pressure columns."""
+    csv_file = tmp_path / "timeseries.csv"
+    with open(csv_file, "w") as f:
+        f.write(PLAIN_CSV_CONTENT)
+    return csv_file
+
+
+@pytest.fixture
+def empty_directory(tmp_path: Path) -> Path:
+    """Creates an empty directory."""
+    return tmp_path
