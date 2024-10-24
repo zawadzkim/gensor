@@ -5,7 +5,8 @@ from typing import Any
 import pandas as pd
 import pandera as pa
 import pydantic as pyd
-from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -20,7 +21,7 @@ ts_schema = pa.SeriesSchema(
 
 
 class Timeseries(BaseTimeseries):
-    """Timeseries for groundwater sensor data
+    """Timeseries of groundwater sensor data.
 
     Attributes:
         ts (pd.Series): The timeseries data.
@@ -28,10 +29,8 @@ class Timeseries(BaseTimeseries):
             The type of the measurement.
         unit (Literal['degC', 'mmH2O', 'mS/cm', 'm/s']): The unit of
             the measurement.
-        sensor (SensorInfo): The serial number of the sensor.
-
-    Methods:
-        validate_ts: if the pd.Series is not exactly what is required, coerce.
+        sensor (str): The serial number of the sensor.
+        sensor_alt (float): Altitude of the sensor (ncessary to compute groundwater levels).
     """
 
     model_config = pyd.ConfigDict(
@@ -46,31 +45,27 @@ class Timeseries(BaseTimeseries):
         if not isinstance(other, Timeseries):
             return NotImplemented
 
-        return (
-            self.variable == other.variable
-            and self.unit == other.unit
-            and self.location == other.location
-            and self.sensor == other.sensor
-            and self.sensor_alt == other.sensor_alt
-        )
+        if not super().__eq__(other):
+            return False
+
+        return self.sensor == other.sensor and self.sensor_alt == other.sensor_alt
 
     def to_sql(self, db: DatabaseConnection) -> str:
-        """Converts the timeseries to a list of dictionaries and uploads it to the database.
+        """Save timeseries to SQLite database.
 
         The Timeseries data is uploaded to the SQL database by using the pandas
         `to_sql` method. Additionally, metadata about the timeseries is stored in the
         'timeseries_metadata' table.
 
-        Args:
+        Parameters:
             db (DatabaseConnection): The database connection object.
 
         Returns:
-            str: A message indicating the number of rows inserted into the database.
+            A message indicating the number of rows inserted into the database.
         """
         # Format the start timestamp as 'YYYYMMDDHHMMSS'
         timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
 
-        # Construct the schema name using the location, sensor, variable, unit, and timestamp
         schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}_{timestamp_start_fmt}".lower()
 
         # Ensure the index is a pandas DatetimeIndex
@@ -129,11 +124,14 @@ class Timeseries(BaseTimeseries):
         return f"{schema_name} table and metadata updated."
 
     def plot(
-        self, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any
-    ) -> tuple:
+        self,
+        include_outliers: bool = False,
+        ax: Axes | None = None,
+        **plot_kwargs: Any,
+    ) -> tuple[Figure, Axes]:
         """Plots the timeseries data.
 
-        Args:
+        Parameters:
             include_outliers (bool): Whether to include outliers in the plot.
             ax (matplotlib.axes.Axes, optional): Matplotlib axes object to plot on.
                 If None, a new figure and axes are created.
@@ -142,28 +140,8 @@ class Timeseries(BaseTimeseries):
         Returns:
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
-        # Create new figure and axes if not provided
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(10, 5))
-        else:
-            fig = ax.get_figure()
+        fig, ax = super().plot(include_outliers=include_outliers, ax=ax, **plot_kwargs)
 
-        ax.plot(
-            self.ts.index,
-            self.ts,
-            label=f"{self.location} ({self.sensor})",
-            **plot_kwargs,
-        )
-
-        if include_outliers and self.outliers is not None:
-            ax.scatter(
-                self.outliers.index, self.outliers, color="red", label="Outliers"
-            )
-        plt.xticks(rotation=45)
-        ax.set_xlabel("Time")
-        ax.set_ylabel(f"{self.variable} ({self.unit})")
-        ax.set_title(f"{self.variable.capitalize()} at {self.location}")
-
-        ax.legend()
+        ax.set_title(f"{self.variable.capitalize()} at {self.location} ({self.sensor})")
 
         return fig, ax

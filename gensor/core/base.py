@@ -6,6 +6,8 @@ import pandas as pd
 import pandera as pa
 import pydantic as pyd
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from sqlalchemy import Table
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -85,6 +87,9 @@ class BaseTimeseries(pyd.BaseModel):
         if attr == "loc":
             return TimeseriesIndexer(self, self.ts.loc)
 
+        if attr == "iloc":
+            return TimeseriesIndexer(self, self.ts.iloc)
+
         error_message = f"'{self.__class__.__name__}' object has no attribute '{attr}'"
 
         if hasattr(self.ts, attr):
@@ -97,6 +102,7 @@ class BaseTimeseries(pyd.BaseModel):
                     # If the result is a Series, return a new Timeseries; otherwise, return the result
                     if isinstance(result, pd.Series):
                         return self.model_copy(update={"ts": result}, deep=True)
+
                     return result
 
                 return wrapper
@@ -323,8 +329,11 @@ class BaseTimeseries(pyd.BaseModel):
         return f"{schema_name} table and metadata updated."
 
     def plot(
-        self: T, include_outliers: bool = False, ax: Any = None, **plot_kwargs: Any
-    ) -> tuple:
+        self: T,
+        include_outliers: bool = False,
+        ax: Axes | None = None,
+        **plot_kwargs: Any,
+    ) -> tuple[Figure, Axes]:
         """Plots the timeseries data.
 
         Args:
@@ -336,11 +345,13 @@ class BaseTimeseries(pyd.BaseModel):
         Returns:
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
-        # Create new figure and axes if not provided
+
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 5))
         else:
-            fig = ax.get_figure()
+            # mypy complained that the get_figure() can return None, but there is no
+            # situation here in which this could be the case.
+            fig = ax.get_figure()  # type: ignore [assignment]
 
         ax.plot(
             self.ts.index,

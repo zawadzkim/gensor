@@ -9,7 +9,7 @@ Python library allowing to load, parse and analyze Groundwater sensor data from 
 
 !!! warning
 
-    Do mind that this package is in active development. API changes can (and probably will) happen. If  you like this package but it is lacking some functionality you need, do not hesitate to submit an issue in Github and/or contribute!
+    Please mind that this package is in active development. API changes can (and probably will) happen. If  you like this package but it is lacking some functionality you need, do not hesitate to submit an issue in Github and/or contribute!
 
 ## Supported sensor formats
 
