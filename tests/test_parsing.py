@@ -5,15 +5,12 @@ from gensor.core.timeseries import Timeseries
 from gensor.io.read import read_from_csv
 
 
-def test_read_from_csv_no_files(empty_directory: Path, capsys):
+def test_read_from_csv_no_files(empty_directory: Path):
     """Test that the function skips when no CSV files are present."""
     result = read_from_csv(empty_directory, file_format="plain")
 
     assert isinstance(result, Dataset)
     assert len(result.timeseries) == 0
-
-    captured = capsys.readouterr()
-    assert "No CSV files found. Operation skipped." in captured.out
 
 
 def test_read_from_csv_with_files(plain_csv_file: Path):

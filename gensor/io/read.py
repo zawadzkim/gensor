@@ -3,6 +3,7 @@
 TODO: Fix up the read_from_sql() function to actually work properly.
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Literal
 
@@ -13,6 +14,8 @@ from ..core.dataset import Dataset
 from ..core.timeseries import Timeseries
 from ..db.connection import DatabaseConnection
 from ..parse import parse_plain, parse_vanessen_csv
+
+logger = logging.getLogger(__name__)
 
 
 def read_from_csv(
@@ -43,7 +46,7 @@ def read_from_csv(
     if path.is_dir() and not any(
         file.is_file() and file.suffix.lower() == ".csv" for file in path.iterdir()
     ):
-        print("No CSV files found. Operation skipped.")
+        logger.info("No CSV files found. Operation skipped.")
         return Dataset()
 
     files = (
@@ -58,16 +61,22 @@ def read_from_csv(
         else []
     )
 
+    if not files:
+        logger.info("No CSV files found. Operation skipped.")
+        return Dataset()
+
     parser = parsers[file_format]
 
     ds: Dataset = Dataset()
 
     for f in files:
-        print(f"Loading file: {f}")
+        logger.info(f"Loading file: {f}")
         ts_in_file = parser(f, **kwargs)
         ds.add(ts_in_file)
 
-    return ds[0] if len(ds) == 1 else ds
+    # If there is only one Timeseries in Dataset (as in the condition), ds[0] will always
+    # be a Timeseries; so the line below does not introduce potential None in the return
+    return ds[0] if len(ds) == 1 else ds  # type: ignore[return-value]
 
 
 def read_from_sql(
