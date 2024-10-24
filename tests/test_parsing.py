@@ -26,13 +26,9 @@ def test_read_from_csv_with_files(plain_csv_file: Path):
         sensor="Sensor A",
     )
 
-    assert isinstance(result, Dataset)
-    assert len(result.timeseries) == 1
+    assert isinstance(result, Timeseries)
 
-    ts = result.timeseries[0]
-    assert ts.variable == "pressure"
-    assert len(ts.ts) == 3
-    assert ts.ts[0] == 1013
+    assert result.variable == "pressure"
 
 
 def test_parsing_vanessen(baro_timeseries):
