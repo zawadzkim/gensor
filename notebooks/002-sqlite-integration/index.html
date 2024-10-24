@@ -827,8 +827,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -875,6 +875,98 @@ ds = read_from_csv(path=test_data,
 
 # We get a Dataset with 2 Timeseries in it
 ds.plot()</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In[1], line 14</span>
+<span class="ansi-green-intense-fg ansi-bold">      9</span> ds <span style="color: rgb(98,98,98)">=</span> read_from_csv(path<span style="color: rgb(98,98,98)">=</span>test_data, 
+<span class="ansi-green-intense-fg ansi-bold">     10</span>                     file_format<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">vanessen</span><span style="color: rgb(175,0,0)">'</span>, 
+<span class="ansi-green-intense-fg ansi-bold">     11</span>                     location_pattern<span style="color: rgb(98,98,98)">=</span>pattern)
+<span class="ansi-green-intense-fg ansi-bold">     13</span> <span style="color: rgb(95,135,135)"># We get a Dataset with 2 Timeseries in it</span>
+<span class="ansi-green-fg">---&gt; 14</span> <span class="ansi-yellow-bg">ds</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plot</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/gensor/core/dataset.py:171</span>, in <span class="ansi-cyan-fg">Dataset.plot</span><span class="ansi-blue-fg">(self, include_outliers)</span>
+<span class="ansi-green-intense-fg ansi-bold">    168</span>         grouped_ts[ts<span style="color: rgb(98,98,98)">.</span>variable]<span style="color: rgb(98,98,98)">.</span>append(ts)
+<span class="ansi-green-intense-fg ansi-bold">    170</span> num_variables <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">len</span>(grouped_ts)
+<span class="ansi-green-fg">--&gt; 171</span> fig, axes <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">plt</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">subplots</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">    172</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">num_variables</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">1</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figsize</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">10</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">5</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">num_variables</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">True</span>
+<span class="ansi-green-intense-fg ansi-bold">    173</span> <span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    175</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> num_variables <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(98,98,98)">1</span>:
+<span class="ansi-green-intense-fg ansi-bold">    176</span>     axes <span style="color: rgb(98,98,98)">=</span> [axes]
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/pyplot.py:1760</span>, in <span class="ansi-cyan-fg">subplots</span><span class="ansi-blue-fg">(nrows, ncols, sharex, sharey, squeeze, width_ratios, height_ratios, subplot_kw, gridspec_kw, **fig_kw)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1615</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1616</span> <span style="color: rgb(175,0,0)">Create a figure and a set of subplots.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1617</span> 
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1757</span> 
+<span class="ansi-green-intense-fg ansi-bold">   1758</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1759</span> fig <span style="color: rgb(98,98,98)">=</span> figure(<span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>fig_kw)
+<span class="ansi-green-fg">-&gt; 1760</span> axs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">fig</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">subplots</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharey</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">sharey</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1761</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">squeeze</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">squeeze</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">subplot_kw</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">subplot_kw</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1762</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1763</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1764</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> fig, axs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/figure.py:860</span>, in <span class="ansi-cyan-fg">FigureBase.subplots</span><span class="ansi-blue-fg">(self, nrows, ncols, sharex, sharey, squeeze, width_ratios, height_ratios, subplot_kw, gridspec_kw)</span>
+<span class="ansi-green-intense-fg ansi-bold">    856</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(<span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">width_ratios</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)"> must not be defined both as </span><span style="color: rgb(175,0,0)">"</span>
+<span class="ansi-green-intense-fg ansi-bold">    857</span>                          <span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">parameter and as key in </span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">gridspec_kw</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">"</span>)
+<span class="ansi-green-intense-fg ansi-bold">    858</span>     gridspec_kw[<span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">width_ratios</span><span style="color: rgb(175,0,0)">'</span>] <span style="color: rgb(98,98,98)">=</span> width_ratios
+<span class="ansi-green-fg">--&gt; 860</span> gs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">add_gridspec</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figure</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    861</span> axs <span style="color: rgb(98,98,98)">=</span> gs<span style="color: rgb(98,98,98)">.</span>subplots(sharex<span style="color: rgb(98,98,98)">=</span>sharex, sharey<span style="color: rgb(98,98,98)">=</span>sharey, squeeze<span style="color: rgb(98,98,98)">=</span>squeeze,
+<span class="ansi-green-intense-fg ansi-bold">    862</span>                   subplot_kw<span style="color: rgb(98,98,98)">=</span>subplot_kw)
+<span class="ansi-green-intense-fg ansi-bold">    863</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> axs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/figure.py:1538</span>, in <span class="ansi-cyan-fg">FigureBase.add_gridspec</span><span class="ansi-blue-fg">(self, nrows, ncols, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1495</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1496</span> <span style="color: rgb(175,0,0)">Low-level API for creating a `.GridSpec` that has this figure as a parent.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1497</span> 
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1534</span> 
+<span class="ansi-green-intense-fg ansi-bold">   1535</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1537</span> _ <span style="color: rgb(98,98,98)">=</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">figure</span><span style="color: rgb(175,0,0)">'</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>)  <span style="color: rgb(95,135,135)"># pop in case user has added this...</span>
+<span class="ansi-green-fg">-&gt; 1538</span> gs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">GridSpec</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figure</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1539</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> gs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/gridspec.py:363</span>, in <span class="ansi-cyan-fg">GridSpec.__init__</span><span class="ansi-blue-fg">(self, nrows, ncols, figure, left, bottom, right, top, wspace, hspace, width_ratios, height_ratios)</span>
+<span class="ansi-green-intense-fg ansi-bold">    360</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>hspace <span style="color: rgb(98,98,98)">=</span> hspace
+<span class="ansi-green-intense-fg ansi-bold">    361</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>figure <span style="color: rgb(98,98,98)">=</span> figure
+<span class="ansi-green-fg">--&gt; 363</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">super</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg" style="color: rgb(0,0,255)">__init__</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    364</span> <span class="ansi-yellow-bg">                 </span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    365</span> <span class="ansi-yellow-bg">                 </span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/gridspec.py:48</span>, in <span class="ansi-cyan-fg">GridSpecBase.__init__</span><span class="ansi-blue-fg">(self, nrows, ncols, height_ratios, width_ratios)</span>
+<span class="ansi-green-intense-fg ansi-bold">     33</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">     34</span> <span style="color: rgb(175,0,0)">Parameters</span>
+<span class="ansi-green-intense-fg ansi-bold">     35</span> <span style="color: rgb(175,0,0)">----------</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">     45</span> <span style="color: rgb(175,0,0)">    If not given, all rows will have the same height.</span>
+<span class="ansi-green-intense-fg ansi-bold">     46</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">     47</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(nrows, Integral) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> nrows <span style="color: rgb(98,98,98)">&lt;</span><span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(98,98,98)">0</span>:
+<span class="ansi-green-fg">---&gt; 48</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">Number of rows must be a positive integer, not </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>nrows<span class="ansi-bold" style="color: rgb(175,95,135)">!r}</span><span style="color: rgb(175,0,0)">"</span>)
+<span class="ansi-green-intense-fg ansi-bold">     50</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(ncols, Integral) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> ncols <span style="color: rgb(98,98,98)">&lt;</span><span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(98,98,98)">0</span>:
+<span class="ansi-green-intense-fg ansi-bold">     51</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(
+<span class="ansi-green-intense-fg ansi-bold">     52</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">Number of columns must be a positive integer, not </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>ncols<span class="ansi-bold" style="color: rgb(175,95,135)">!r}</span><span style="color: rgb(175,0,0)">"</span>)
+
+<span class="ansi-red-fg">ValueError</span>: Number of rows must be a positive integer, not 0</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>&lt;Figure size 1000x0 with 0 Axes&gt;</pre>
 </div>
 </div>
 </div>
@@ -985,8 +1077,8 @@ db.get_tables()</div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1015,6 +1107,96 @@ db.get_tables()</div>
 # Issue: the unit name is case sensitive (shouldn't be)
 new_ds: Dataset = read_from_sql(db, True)
 new_ds.plot()</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In[4], line 5</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span style="color: rgb(95,135,135)"># Issue: the unit name is case sensitive (shouldn't be)</span>
+<span class="ansi-green-intense-fg ansi-bold">      4</span> new_ds: Dataset <span style="color: rgb(98,98,98)">=</span> read_from_sql(db, <span class="ansi-bold" style="color: rgb(0,135,0)">True</span>)
+<span class="ansi-green-fg">----&gt; 5</span> <span class="ansi-yellow-bg">new_ds</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plot</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/gensor/core/dataset.py:171</span>, in <span class="ansi-cyan-fg">Dataset.plot</span><span class="ansi-blue-fg">(self, include_outliers)</span>
+<span class="ansi-green-intense-fg ansi-bold">    168</span>         grouped_ts[ts<span style="color: rgb(98,98,98)">.</span>variable]<span style="color: rgb(98,98,98)">.</span>append(ts)
+<span class="ansi-green-intense-fg ansi-bold">    170</span> num_variables <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">len</span>(grouped_ts)
+<span class="ansi-green-fg">--&gt; 171</span> fig, axes <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">plt</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">subplots</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">    172</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">num_variables</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">1</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figsize</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">10</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">5</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">num_variables</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">True</span>
+<span class="ansi-green-intense-fg ansi-bold">    173</span> <span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    175</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> num_variables <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(98,98,98)">1</span>:
+<span class="ansi-green-intense-fg ansi-bold">    176</span>     axes <span style="color: rgb(98,98,98)">=</span> [axes]
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/pyplot.py:1760</span>, in <span class="ansi-cyan-fg">subplots</span><span class="ansi-blue-fg">(nrows, ncols, sharex, sharey, squeeze, width_ratios, height_ratios, subplot_kw, gridspec_kw, **fig_kw)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1615</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1616</span> <span style="color: rgb(175,0,0)">Create a figure and a set of subplots.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1617</span> 
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1757</span> 
+<span class="ansi-green-intense-fg ansi-bold">   1758</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1759</span> fig <span style="color: rgb(98,98,98)">=</span> figure(<span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>fig_kw)
+<span class="ansi-green-fg">-&gt; 1760</span> axs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">fig</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">subplots</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">sharex</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">sharey</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">sharey</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1761</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">squeeze</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">squeeze</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">subplot_kw</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">subplot_kw</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1762</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1763</span> <span class="ansi-yellow-bg">                   </span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1764</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> fig, axs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/figure.py:860</span>, in <span class="ansi-cyan-fg">FigureBase.subplots</span><span class="ansi-blue-fg">(self, nrows, ncols, sharex, sharey, squeeze, width_ratios, height_ratios, subplot_kw, gridspec_kw)</span>
+<span class="ansi-green-intense-fg ansi-bold">    856</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(<span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">width_ratios</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)"> must not be defined both as </span><span style="color: rgb(175,0,0)">"</span>
+<span class="ansi-green-intense-fg ansi-bold">    857</span>                          <span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">parameter and as key in </span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">gridspec_kw</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">"</span>)
+<span class="ansi-green-intense-fg ansi-bold">    858</span>     gridspec_kw[<span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">width_ratios</span><span style="color: rgb(175,0,0)">'</span>] <span style="color: rgb(98,98,98)">=</span> width_ratios
+<span class="ansi-green-fg">--&gt; 860</span> gs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">add_gridspec</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figure</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">gridspec_kw</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    861</span> axs <span style="color: rgb(98,98,98)">=</span> gs<span style="color: rgb(98,98,98)">.</span>subplots(sharex<span style="color: rgb(98,98,98)">=</span>sharex, sharey<span style="color: rgb(98,98,98)">=</span>sharey, squeeze<span style="color: rgb(98,98,98)">=</span>squeeze,
+<span class="ansi-green-intense-fg ansi-bold">    862</span>                   subplot_kw<span style="color: rgb(98,98,98)">=</span>subplot_kw)
+<span class="ansi-green-intense-fg ansi-bold">    863</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> axs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/figure.py:1538</span>, in <span class="ansi-cyan-fg">FigureBase.add_gridspec</span><span class="ansi-blue-fg">(self, nrows, ncols, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1495</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1496</span> <span style="color: rgb(175,0,0)">Low-level API for creating a `.GridSpec` that has this figure as a parent.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1497</span> 
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1534</span> 
+<span class="ansi-green-intense-fg ansi-bold">   1535</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">   1537</span> _ <span style="color: rgb(98,98,98)">=</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">figure</span><span style="color: rgb(175,0,0)">'</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>)  <span style="color: rgb(95,135,135)"># pop in case user has added this...</span>
+<span class="ansi-green-fg">-&gt; 1538</span> gs <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">GridSpec</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">figure</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1539</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> gs
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/gridspec.py:363</span>, in <span class="ansi-cyan-fg">GridSpec.__init__</span><span class="ansi-blue-fg">(self, nrows, ncols, figure, left, bottom, right, top, wspace, hspace, width_ratios, height_ratios)</span>
+<span class="ansi-green-intense-fg ansi-bold">    360</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>hspace <span style="color: rgb(98,98,98)">=</span> hspace
+<span class="ansi-green-intense-fg ansi-bold">    361</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>figure <span style="color: rgb(98,98,98)">=</span> figure
+<span class="ansi-green-fg">--&gt; 363</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">super</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg" style="color: rgb(0,0,255)">__init__</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">nrows</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">ncols</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    364</span> <span class="ansi-yellow-bg">                 </span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">width_ratios</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    365</span> <span class="ansi-yellow-bg">                 </span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">height_ratios</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/gensor/gensor/.venv/lib/python3.11/site-packages/matplotlib/gridspec.py:48</span>, in <span class="ansi-cyan-fg">GridSpecBase.__init__</span><span class="ansi-blue-fg">(self, nrows, ncols, height_ratios, width_ratios)</span>
+<span class="ansi-green-intense-fg ansi-bold">     33</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">     34</span> <span style="color: rgb(175,0,0)">Parameters</span>
+<span class="ansi-green-intense-fg ansi-bold">     35</span> <span style="color: rgb(175,0,0)">----------</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">     45</span> <span style="color: rgb(175,0,0)">    If not given, all rows will have the same height.</span>
+<span class="ansi-green-intense-fg ansi-bold">     46</span> <span style="color: rgb(175,0,0)">"""</span>
+<span class="ansi-green-intense-fg ansi-bold">     47</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(nrows, Integral) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> nrows <span style="color: rgb(98,98,98)">&lt;</span><span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(98,98,98)">0</span>:
+<span class="ansi-green-fg">---&gt; 48</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">Number of rows must be a positive integer, not </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>nrows<span class="ansi-bold" style="color: rgb(175,95,135)">!r}</span><span style="color: rgb(175,0,0)">"</span>)
+<span class="ansi-green-intense-fg ansi-bold">     50</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(ncols, Integral) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> ncols <span style="color: rgb(98,98,98)">&lt;</span><span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(98,98,98)">0</span>:
+<span class="ansi-green-intense-fg ansi-bold">     51</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(
+<span class="ansi-green-intense-fg ansi-bold">     52</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">Number of columns must be a positive integer, not </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>ncols<span class="ansi-bold" style="color: rgb(175,95,135)">!r}</span><span style="color: rgb(175,0,0)">"</span>)
+
+<span class="ansi-red-fg">ValueError</span>: Number of rows must be a positive integer, not 0</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>&lt;Figure size 1000x0 with 0 Axes&gt;</pre>
 </div>
 </div>
 </div>
