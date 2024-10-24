@@ -17,7 +17,7 @@ from ..parse import parse_plain, parse_vanessen_csv
 
 def read_from_csv(
     path: Path, file_format: Literal["vanessen", "plain"] = "vanessen", **kwargs: Any
-) -> Dataset:
+) -> Dataset | Timeseries:
     """Loads the data from csv files with given file_format and returns a list of Timeseries objects.
 
     Parameters:
@@ -59,13 +59,15 @@ def read_from_csv(
     )
 
     parser = parsers[file_format]
+
     ds: Dataset = Dataset()
+
     for f in files:
         print(f"Loading file: {f}")
         ts_in_file = parser(f, **kwargs)
         ds.add(ts_in_file)
 
-    return ds
+    return ds[0] if len(ds) == 1 else ds
 
 
 def read_from_sql(
