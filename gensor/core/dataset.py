@@ -14,7 +14,7 @@ from gensor.exceptions import IndexOutOfRangeError
 
 
 class Dataset(pyd.BaseModel, Generic[T]):
-    """Class to store and operate on a collection of Timeseries.
+    """Store and operate on a collection of Timeseries.
 
     Attributes:
         timeseries (list[Timeseries]): A list of Timeseries objects.
@@ -55,7 +55,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
         return [ts.location for ts in self.timeseries if ts is not None]
 
     def add(self, other: T | list[T] | Dataset) -> Dataset:
-        """Appends a new series to the Dataset.
+        """Appends new Timeseries to the Dataset.
 
         If an equal Timeseries already exists, merge the new data into the existing
         Timeseries, dropping duplicate timestamps.
@@ -98,12 +98,14 @@ class Dataset(pyd.BaseModel, Generic[T]):
         and/or variable.
 
         Parameters:
-            stations (Optional[str]): The location of the station.
-            sensors (Optional[str]): The sensor identifier.
-            variables (Optional[str]): The variable being measured.
+            location (Optional[str]): The location name.
+            variable (Optional[str]): The variable being measured.
+            unit (Optional[str]): Unit of the measurement.
+            **kwargs (dict): Attributes of subclassed timeseries used for filtering
+                (e.g., sensor, method).
 
         Returns:
-            Timeseries or Dataset: A single Timeseries if exactly one match is found,
+            Timeseries | Dataset: A single Timeseries if exactly one match is found,
                                    or a new Dataset if multiple matches are found.
         """
 
@@ -143,6 +145,11 @@ class Dataset(pyd.BaseModel, Generic[T]):
         return self.model_copy(update={"timeseries": matching_timeseries})
 
     def to_sql(self, db: DatabaseConnection) -> None:
+        """Save the entire timeseries to a SQLite database.
+
+        Parameters:
+            db (DatabaseConnection): SQLite database connection object.
+        """
         for ts in self.timeseries:
             if ts:
                 ts.to_sql(db)
@@ -151,7 +158,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
     def plot(self, include_outliers: bool = False) -> tuple[Figure, Axes]:
         """Plots the timeseries data, grouping by variable type.
 
-        Args:
+        Parameters:
             include_outliers (bool): Whether to include outliers in the plot.
         """
 
