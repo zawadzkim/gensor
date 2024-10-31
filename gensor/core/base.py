@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal, TypeVar
+from collections import defaultdict
 
 import pandas as pd
 import pandera as pa
@@ -332,7 +333,8 @@ class BaseTimeseries(pyd.BaseModel):
         self: T,
         include_outliers: bool = False,
         ax: Axes | None = None,
-        **plot_kwargs: Any,
+        plot_kwargs: dict = defaultdict,
+        legend_kwargs: dict = defaultdict
     ) -> tuple[Figure, Axes]:
         """Plots the timeseries data.
 
@@ -346,6 +348,9 @@ class BaseTimeseries(pyd.BaseModel):
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
 
+        plot_kwargs = plot_kwargs or {}
+        legend_kwargs = legend_kwargs or {}
+        
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 5))
         else:
@@ -357,7 +362,7 @@ class BaseTimeseries(pyd.BaseModel):
             self.ts.index,
             self.ts,
             label=f"{self.location}",
-            **plot_kwargs,
+            **plot_kwargs if plot_kwargs else None,
         )
 
         if include_outliers and self.outliers is not None:
@@ -369,6 +374,6 @@ class BaseTimeseries(pyd.BaseModel):
         ax.set_ylabel(f"{self.variable} ({self.unit})")
         ax.set_title(f"{self.variable.capitalize()} at {self.location}")
 
-        ax.legend()
+        ax.legend(**legend_kwargs)
 
         return fig, ax

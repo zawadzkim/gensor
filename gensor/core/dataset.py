@@ -155,7 +155,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
                 ts.to_sql(db)
         return
 
-    def plot(self, include_outliers: bool = False) -> tuple[Figure, Axes]:
+    def plot(self, include_outliers: bool = False, legend_kwargs: dict = defaultdict, plot_kwargs: dict = defaultdict) -> tuple[Figure, Axes]:
         """Plots the timeseries data, grouping by variable type.
 
         Parameters:
