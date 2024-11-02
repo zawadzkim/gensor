@@ -96,7 +96,6 @@ def read_from_sql(
         db (DatabaseConnection): The database connection object.
         load_all (bool): Whether to load all timeseries from the database.
         location (str): The station name.
-        sensor (str): The sensor name.
         variable (str): The measurement type.
         unit (str): The unit of the measurement.
 
@@ -170,7 +169,8 @@ def read_from_sql(
         schema_name = (
             f"{location}_{variable}_{unit}".lower()
         )
-        return _read_from_sql(schema_name)
+        # This will always returm Timeseries or Dataset.
+        return _read_from_sql(schema_name)  # type: ignore[no-any-return]
 
 
 # fmt: on
