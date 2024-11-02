@@ -2,30 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://zawadzkim.github.io/gensor/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/modules/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/quickstart/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/notebooks/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/notebooks/000-basic-usage/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/notebooks/001-transformation-and-outliers/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
     <url>
          <loc>https://zawadzkim.github.io/gensor/notebooks/002-sqlite-integration/</loc>
-         <lastmod>2024-10-24</lastmod>
+         <lastmod>2024-11-02</lastmod>
     </url>
 </urlset>
