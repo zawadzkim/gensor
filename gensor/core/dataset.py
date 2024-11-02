@@ -155,19 +155,31 @@ class Dataset(pyd.BaseModel, Generic[T]):
                 ts.to_sql(db)
         return
 
-    def plot(self, include_outliers: bool = False, legend_kwargs: dict = defaultdict, plot_kwargs: dict = defaultdict) -> tuple[Figure, Axes]:
+    def plot(
+        self,
+        include_outliers: bool = False,
+        plot_kwargs: dict[str, Any] | None = None,
+        legend_kwargs: dict[str, Any] | None = None,
+    ) -> tuple[Figure, Axes]:
         """Plots the timeseries data, grouping by variable type.
 
         Parameters:
             include_outliers (bool): Whether to include outliers in the plot.
+            plot_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.plot() method to customize the plot.
+            legend_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.legend() to customize the legend.
+
+        Returns:
+            (fig, ax): Matplotlib figure and axes to allow further customization.
         """
 
         grouped_ts = defaultdict(list)
+
         for ts in self.timeseries:
             if ts:
                 grouped_ts[ts.variable].append(ts)
 
         num_variables = len(grouped_ts)
+
         fig, axes = plt.subplots(
             num_variables, 1, figsize=(10, 5 * num_variables), sharex=True
         )
@@ -177,7 +189,12 @@ class Dataset(pyd.BaseModel, Generic[T]):
 
         for ax, (variable, ts_list) in zip(axes, grouped_ts.items(), strict=False):
             for ts in ts_list:
-                ts.plot(include_outliers=include_outliers, ax=ax)
+                ts.plot(
+                    include_outliers=include_outliers,
+                    ax=ax,
+                    plot_kwargs=plot_kwargs,
+                    legend_kwargs=legend_kwargs,
+                )
 
             ax.set_title(f"Timeseries for {variable.capitalize()}")
             ax.set_xlabel("Time")

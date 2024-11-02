@@ -51,13 +51,12 @@ def test_save_and_load_timeseries(db, baro_timeseries):
         db=db,
         load_all=False,
         location=ts.location,
-        sensor=ts.sensor,
         variable=ts.variable,
         unit=ts.unit,
         timestamp_start=ts.start,
     )
 
-    assert ts == loaded_ts, "Loaded timeseries should match the saved timeseries"
+    assert ts == loaded_ts, "Loaded timeseries should match the saved timeseries."
 
 
 def test_save_and_load_dataset(db, baro_timeseries):
@@ -65,7 +64,11 @@ def test_save_and_load_dataset(db, baro_timeseries):
 
     baro_timeseries.to_sql(db)
 
-    read_from_sql(
+    loaded_ds = read_from_sql(
         db=db,
         load_all=True,
     )
+
+    assert len(loaded_ds.timeseries) == len(
+        baro_timeseries
+    ), "The loaded dataset should match the saved dataset."

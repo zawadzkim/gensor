@@ -4,6 +4,7 @@ TODO: Fix up the read_from_sql() function to actually work properly.
 """
 
 import logging
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Literal
 
@@ -83,10 +84,11 @@ def read_from_sql(
     db: DatabaseConnection,
     load_all: bool,
     location: str | None = None,
-    sensor: str | None = None,
     variable: str | None = None,
     unit: str | None = None,
     timestamp_start: pd.Timestamp | None = None,
+    timestamp_stop: pd.Timestamp | None = None,
+    **kwargs: dict,
 ) -> Timeseries | Dataset:
     """Returns the timeseries or a dataset from a SQL database.
 
@@ -106,7 +108,7 @@ def read_from_sql(
         TypeError: If the retrieved data is not a DataFrame or is of incorrect type.
     """
 
-    def _read_from_sql(schema_name: str) -> Timeseries:
+    def _read_from_sql(schema_name: str) -> Any:
         with db as con:
             schema = db.metadata.tables[schema_name]
             metadata_table = db.metadata.tables["__timeseries_metadata__"]
@@ -133,21 +135,23 @@ def read_from_sql(
             message = f"No metadata found for table {schema_name}"
             raise ValueError(message)
 
-        location = metadata_result[2]
-        sensor = metadata_result[3]
-        variable = metadata_result[4]
-        unit = metadata_result[5]
-        sensor_alt = metadata_result[6]
-        # location_alt = metadata_result[7]
+        # Core metadata extraction
+        core_metadata = {
+            "location": metadata_result[2],
+            "variable": metadata_result[3],
+            "unit": metadata_result[4],
+        }
 
-        ts_object = Timeseries(
-            ts=ts,
-            variable=variable,
-            location=location,
-            sensor=sensor,
-            unit=unit,
-            sensor_alt=sensor_alt,
-        )
+        extra_metadata = metadata_result[7] or {}
+        cls = metadata_result[8]
+
+        metadata = {**core_metadata, **extra_metadata}
+
+        module_name, class_name = cls.rsplit(".", 1)
+        module = import_module(module_name)
+
+        TimeseriesClass = getattr(module, class_name)
+        ts_object = TimeseriesClass(ts=ts, **metadata)
 
         return ts_object
 
@@ -162,10 +166,9 @@ def read_from_sql(
         else:
             return Dataset()
     else:
-        if isinstance(timestamp_start, pd.Timestamp):
-            timestamp_start_fmt = timestamp_start.strftime("%Y%m%d%H%M%S")
+
         schema_name = (
-            f"{location}_{sensor}_{variable}_{unit}_{timestamp_start_fmt}".lower()
+            f"{location}_{variable}_{unit}".lower()
         )
         return _read_from_sql(schema_name)
 
