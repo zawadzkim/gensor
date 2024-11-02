@@ -9,13 +9,13 @@ def test_db_creation_default_location(db):
     with db as con:
         query = text("SELECT name FROM sqlite_master WHERE type='table';")
         result = con.execute(query).fetchall()
-        assert (
-            len(result) == 1
-        ), "There should only be 1 table in the database (metadata)."
+        assert len(result) == 1, (
+            "There should only be 1 table in the database (metadata)."
+        )
 
-    assert (
-        db.db_directory / db.db_name
-    ).exists(), "Database file should be created in the default location."
+    assert (db.db_directory / db.db_name).exists(), (
+        "Database file should be created in the default location."
+    )
 
 
 def test_db_create_table(db, baro_timeseries):
@@ -29,15 +29,15 @@ def test_db_create_table(db, baro_timeseries):
 
     with db as con:
         db.create_table(schema_name, ts.variable)
-        assert (
-            len(check_number_of_tables()) == 2
-        ), "There should be 2 tables in the database (metadata and newly created one)."
+        assert len(check_number_of_tables()) == 2, (
+            "There should be 2 tables in the database (metadata and newly created one)."
+        )
 
     with db as con:
         db.create_table(schema_name, ts.variable)
-        assert (
-            len(check_number_of_tables()) == 2
-        ), "There should still be 2 tables in the database. Creation of the second one should be skipped"
+        assert len(check_number_of_tables()) == 2, (
+            "There should still be 2 tables in the database. Creation of the second one should be skipped"
+        )
 
 
 def test_save_and_load_timeseries(db, baro_timeseries):
@@ -69,6 +69,6 @@ def test_save_and_load_dataset(db, baro_timeseries):
         load_all=True,
     )
 
-    assert len(loaded_ds.timeseries) == len(
-        baro_timeseries
-    ), "The loaded dataset should match the saved dataset."
+    assert len(loaded_ds.timeseries) == len(baro_timeseries), (
+        "The loaded dataset should match the saved dataset."
+    )

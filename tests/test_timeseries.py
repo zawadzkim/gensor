@@ -52,9 +52,9 @@ def test_adding_timeseries(
     )
 
     # The new Series should be exactly 3 records longer
-    assert (
-        len(new_ts.ts) == len(synthetic_submerged_timeseries.ts) + 3
-    ), f"Expected new timeseries to have 6 records, but got {len(new_ts.ts)}"
+    assert len(new_ts.ts) == len(synthetic_submerged_timeseries.ts) + 3, (
+        f"Expected new timeseries to have 6 records, but got {len(new_ts.ts)}"
+    )
 
 
 def test_adding_timeseries_not_equal(synthetic_submerged_timeseries):
@@ -90,9 +90,9 @@ def test_mask_with(
 
     assert masked_ts.ts.index.equals(expected_index), "Masked Timeseries index mismatch"
 
-    assert len(synthetic_submerged_timeseries.ts) > len(
-        masked_ts.ts
-    ), "Original timeseries was altered"
+    assert len(synthetic_submerged_timeseries.ts) > len(masked_ts.ts), (
+        "Original timeseries was altered"
+    )
 
 
 # =================================== Test indexing ====================================

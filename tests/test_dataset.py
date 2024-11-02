@@ -26,9 +26,9 @@ def test_filter_by_station_and_variable(synthetic_dataset):
 
     single_ts = dataset.filter(location="Station A", variable="pressure", unit="cmh2o")
 
-    assert isinstance(
-        single_ts, Timeseries
-    ), "If only one ts is found, the return should be a Timeseries, not Dataset(1)"
+    assert isinstance(single_ts, Timeseries), (
+        "If only one ts is found, the return should be a Timeseries, not Dataset(1)"
+    )
 
     assert single_ts.location == "Station A"
     assert single_ts.variable == "pressure"
@@ -62,9 +62,9 @@ def test_filter_by_station_and_sensor(synthetic_dataset):
 
     single_ts = synthetic_dataset.filter(location="Station B", sensor="Sensor 2")
 
-    assert isinstance(
-        single_ts, Timeseries
-    ), "If only one ts is found, the return should be a Timeseries, not Dataset(1)"
+    assert isinstance(single_ts, Timeseries), (
+        "If only one ts is found, the return should be a Timeseries, not Dataset(1)"
+    )
 
     assert single_ts.location == "Station B"
     assert single_ts.sensor == "Sensor 2"
@@ -98,9 +98,9 @@ def test_filter_with_attribute_as_list(synthetic_dataset):
         sensor=["Sensor 1", "Sensor 3"],
     )
 
-    assert (
-        len(filtered_dataset) == 2
-    ), "There should be two timeseries with Sensor 1 and Sensor 3"
+    assert len(filtered_dataset) == 2, (
+        "There should be two timeseries with Sensor 1 and Sensor 3"
+    )
 
     sensors_in_result = {ts.sensor for ts in filtered_dataset}
     assert "Sensor 1" in sensors_in_result
