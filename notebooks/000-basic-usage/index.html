@@ -832,6 +832,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p>Welcome to the first tutorial of Gensor. Here we will explore the core features of the package which come with the base classes: <a href="../../modules/#gensor.Timeseries"><code>Timeseries</code></a> and <a href="../../modules/#gensor.Dataset"><code>Dataset</code></a>.</p>
+<p>We start with importing the package and the test datasets. We will also set the logging level to "WARNING" to avoid getting all "INFO" messages.</p>
 </div>
 </div>
 </div>
@@ -856,9 +857,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">gensor</span> <span class="k">as</span> <span class="nn">gs</span>
 <span class="kn">from</span> <span class="nn">gensor.testdata</span> <span class="kn">import</span> <span class="n">all_paths</span><span class="p">,</span> <span class="n">pb02a_plain</span>
+
+<span class="n">gs</span><span class="o">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="s2">"WARNING"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import gensor as gs
-from gensor.testdata import all_paths, pb02a_plain</div>
+from gensor.testdata import all_paths, pb02a_plain
+
+gs.set_log_level("WARNING")</div>
 </div>
 </div>
 </div>
@@ -880,8 +885,8 @@ from gensor.testdata import all_paths, pb02a_plain</div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -899,71 +904,43 @@ from gensor.testdata import all_paths, pb02a_plain</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
-<span class="n">timestamps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s1">'2024-01-01 00:00'</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">'h'</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">'UTC'</span><span class="p">)</span>
+<span class="n">timestamps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">"2024-01-01 00:00"</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"h"</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s2">"UTC"</span><span class="p">)</span>
 
 <span class="n">barometric_pressure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">980</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1050</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
-<span class="n">pressure_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">barometric_pressure</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Barometric Pressure"</span><span class="p">)</span>
+<span class="n">pressure_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">barometric_pressure</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Barometric Pressure"</span>
+<span class="p">)</span>
 
-<span class="n">ts</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">Timeseries</span><span class="p">(</span><span class="n">ts</span><span class="o">=</span><span class="n">pressure_series</span><span class="p">,</span>
-                   <span class="n">variable</span><span class="o">=</span><span class="s1">'pressure'</span><span class="p">,</span>
-                   <span class="n">unit</span><span class="o">=</span><span class="s1">'cmh2o'</span><span class="p">,</span>
-                   <span class="n">location</span><span class="o">=</span><span class="s1">'BH1'</span><span class="p">,</span>
-                   <span class="n">sensor</span><span class="o">=</span><span class="s1">'ABC123'</span><span class="p">)</span>
-
-<span class="n">ts</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">Timeseries</span><span class="p">(</span>
+    <span class="n">ts</span><span class="o">=</span><span class="n">pressure_series</span><span class="p">,</span>
+    <span class="n">variable</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">,</span>
+    <span class="n">unit</span><span class="o">=</span><span class="s2">"cmh2o"</span><span class="p">,</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"BH1"</span><span class="p">,</span>
+    <span class="n">sensor</span><span class="o">=</span><span class="s2">"ABC123"</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">import pandas as pd
-import numpy as np
+<div class="clipboard-copy-txt" id="cell-2">import numpy as np
+import pandas as pd
 
-timestamps = pd.date_range(start='2024-01-01 00:00', periods=10, freq='h', tz='UTC')
+timestamps = pd.date_range(start="2024-01-01 00:00", periods=10, freq="h", tz="UTC")
 
 barometric_pressure = np.random.uniform(low=980, high=1050, size=10)
 
-pressure_series = pd.Series(data=barometric_pressure, index=timestamps, name="Barometric Pressure")
+pressure_series = pd.Series(
+    data=barometric_pressure, index=timestamps, name="Barometric Pressure"
+)
 
-ts = gs.Timeseries(ts=pressure_series,
-                   variable='pressure',
-                   unit='cmh2o',
-                   location='BH1',
-                   sensor='ABC123')
-
-ts.model_dump()
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[2]:</div>
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
-<pre>{'ts': 2024-01-01 00:00:00+00:00    1025.840659
- 2024-01-01 01:00:00+00:00    1049.501851
- 2024-01-01 02:00:00+00:00    1026.990061
- 2024-01-01 03:00:00+00:00     992.478148
- 2024-01-01 04:00:00+00:00    1004.882796
- 2024-01-01 05:00:00+00:00    1001.517119
- 2024-01-01 06:00:00+00:00    1002.342759
- 2024-01-01 07:00:00+00:00    1004.133097
- 2024-01-01 08:00:00+00:00    1042.192393
- 2024-01-01 09:00:00+00:00    1035.335247
- Freq: h, Name: Barometric Pressure, dtype: float64,
- 'variable': 'pressure',
- 'unit': 'cmh2o',
- 'location': 'BH1',
- 'outliers': None,
- 'transformation': None,
- 'sensor': 'ABC123',
- 'sensor_alt': None,
- 'start': Timestamp('2024-01-01 00:00:00+0000', tz='UTC'),
- 'end': Timestamp('2024-01-01 09:00:00+0000', tz='UTC')}</pre>
+ts = gs.Timeseries(
+    ts=pressure_series,
+    variable="pressure",
+    unit="cmh2o",
+    location="BH1",
+    sensor="ABC123",
+)</div>
 </div>
 </div>
 </div>
@@ -981,8 +958,8 @@ ts.model_dump()
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1000,37 +977,13 @@ ts.model_dump()
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">gensor</span> <span class="kn">import</span> <span class="n">read_from_csv</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"[A-Za-z]</span><span class="si">{2}</span><span class="s2">\d</span><span class="si">{2}</span><span class="s2">[A-Za-z]</span><span class="si">{1}</span><span class="s2">|Barodiver"</span>
 
-<span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">'[A-Za-z]</span><span class="si">{2}</span><span class="s1">\d</span><span class="si">{2}</span><span class="s1">[A-Za-z]</span><span class="si">{1}</span><span class="s1">|Barodiver'</span>
-
-<span class="n">ds</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">all_paths</span><span class="p">,</span> 
-                    <span class="n">file_format</span><span class="o">=</span><span class="s1">'vanessen'</span><span class="p">,</span> 
-                    <span class="n">location_pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">all_paths</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">"vanessen"</span><span class="p">,</span> <span class="n">location_pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">from gensor import read_from_csv
+<div class="clipboard-copy-txt" id="cell-3">pattern = r"[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver"
 
-pattern = r'[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver'
-
-ds = read_from_csv(path=all_paths, 
-                    file_format='vanessen', 
-                    location_pattern=pattern)</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
-Skipping file /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv due to missing metadata.
-Loading file: /home/runner/work/gensor/gensor/gensor/testdata/Barodiver_220427183008_BY222.csv
-Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_220427183019_AV319.csv
-</pre>
+ds = gs.read_from_csv(path=all_paths, file_format="vanessen", location_pattern=pattern)</div>
 </div>
 </div>
 </div>
@@ -1098,8 +1051,8 @@ Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_2
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1117,28 +1070,13 @@ Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_2
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ds2</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">pb02a_plain</span><span class="p">,</span> 
-                    <span class="n">file_format</span><span class="o">=</span><span class="s1">'plain'</span><span class="p">,</span> 
-                    <span class="n">location</span><span class="o">=</span><span class="s1">'PB02A'</span><span class="p">,</span>
-                    <span class="n">sensor</span><span class="o">=</span><span class="s1">'AV336'</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ds2</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">read_from_csv</span><span class="p">(</span>
+    <span class="n">path</span><span class="o">=</span><span class="n">pb02a_plain</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">"PB02A"</span><span class="p">,</span> <span class="n">sensor</span><span class="o">=</span><span class="s2">"AV336"</span>
+<span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">ds2 = read_from_csv(path=pb02a_plain, 
-                    file_format='plain', 
-                    location='PB02A',
-                    sensor='AV336')</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
-</pre>
+<div class="clipboard-copy-txt" id="cell-5">ds2 = gs.read_from_csv(
+    path=pb02a_plain, file_format="plain", location="PB02A", sensor="AV336"
+)</div>
 </div>
 </div>
 </div>
@@ -1342,11 +1280,11 @@ Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_2
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># identify the barometric timeseries in your dataset</span>
-<span class="n">baro</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="s1">'Barodiver'</span><span class="p">,</span> <span class="n">variable</span><span class="o">=</span><span class="s1">'pressure'</span><span class="p">)</span>
+<span class="n">baro</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="s2">"Barodiver"</span><span class="p">,</span> <span class="n">variable</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">)</span>
 <span class="n">baro</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>  <span class="c1"># Timeseries have a .plot()</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-9"># identify the barometric timeseries in your dataset
-baro = ds.filter(location='Barodiver', variable='pressure')
+baro = ds.filter(location="Barodiver", variable="pressure")
 baro.plot()  # Timeseries have a .plot()</div>
 </div>
 </div>
@@ -1393,10 +1331,7 @@ baro.plot()  # Timeseries have a .plot()</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Adding extra information to the submerged sensor timeseries. This could also</span>
 <span class="c1"># be imported from a json file or a csv and converted into a dictionary.</span>
-<span class="n">alts</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"PB01A"</span><span class="p">:</span> <span class="mf">31.48</span><span class="p">,</span>
-    <span class="s2">"PB02A"</span><span class="p">:</span> <span class="mf">31.68</span>
-    <span class="p">}</span>
+<span class="n">alts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"PB01A"</span><span class="p">:</span> <span class="mf">31.48</span><span class="p">,</span> <span class="s2">"PB02A"</span><span class="p">:</span> <span class="mf">31.68</span><span class="p">}</span>
 
 <span class="n">groundwater_ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">alts</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">variable</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">)</span>
 
@@ -1409,10 +1344,7 @@ baro.plot()  # Timeseries have a .plot()</div>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-10"># Adding extra information to the submerged sensor timeseries. This could also
 # be imported from a json file or a csv and converted into a dictionary.
-alts = {
-    "PB01A": 31.48,
-    "PB02A": 31.68
-    }
+alts = {"PB01A": 31.48, "PB02A": 31.68}
 
 groundwater_ds = ds.filter(location=alts.keys(), variable="pressure")
 
@@ -1477,23 +1409,77 @@ groundwater_ds.plot()</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">fieldwork_days</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"PB01A"</span><span class="p">:</span> <span class="p">[</span><span class="s1">'2020-08-25'</span><span class="p">,</span> <span class="s1">'2020-10-20'</span><span class="p">,</span> <span class="s1">'2020-11-18'</span><span class="p">,</span> <span class="s1">'2020-12-03'</span><span class="p">,</span> <span class="s1">'2020-12-08'</span><span class="p">,</span>
-                  <span class="s1">'2021-02-17'</span><span class="p">,</span> <span class="s1">'2021-03-10'</span><span class="p">,</span> <span class="s1">'2021-04-14'</span><span class="p">,</span> <span class="s1">'2021-05-18'</span><span class="p">,</span> <span class="s1">'2021-05-27'</span><span class="p">,</span>
-                  <span class="s1">'2021-08-17'</span><span class="p">,</span> <span class="s1">'2021-09-16'</span><span class="p">],</span>
-                  <span class="s2">"PB02A"</span><span class="p">:</span> <span class="p">[</span><span class="s1">'2020-08-25'</span><span class="p">,</span> <span class="s1">'2020-10-20'</span><span class="p">,</span> <span class="s1">'2020-11-18'</span><span class="p">,</span> <span class="s1">'2020-12-03'</span><span class="p">,</span> <span class="s1">'2020-12-08'</span><span class="p">,</span>
-                  <span class="s1">'2021-02-17'</span><span class="p">,</span> <span class="s1">'2021-03-10'</span><span class="p">,</span> <span class="s1">'2021-04-14'</span><span class="p">,</span> <span class="s1">'2021-05-18'</span><span class="p">,</span> <span class="s1">'2021-05-27'</span><span class="p">,</span>
-                  <span class="s1">'2021-08-17'</span><span class="p">,</span> <span class="s1">'2021-09-16'</span><span class="p">,</span> <span class="s1">'2021-04-26'</span><span class="p">]}</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">fieldwork_days</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"PB01A"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"2020-08-25"</span><span class="p">,</span>
+        <span class="s2">"2020-10-20"</span><span class="p">,</span>
+        <span class="s2">"2020-11-18"</span><span class="p">,</span>
+        <span class="s2">"2020-12-03"</span><span class="p">,</span>
+        <span class="s2">"2020-12-08"</span><span class="p">,</span>
+        <span class="s2">"2021-02-17"</span><span class="p">,</span>
+        <span class="s2">"2021-03-10"</span><span class="p">,</span>
+        <span class="s2">"2021-04-14"</span><span class="p">,</span>
+        <span class="s2">"2021-05-18"</span><span class="p">,</span>
+        <span class="s2">"2021-05-27"</span><span class="p">,</span>
+        <span class="s2">"2021-08-17"</span><span class="p">,</span>
+        <span class="s2">"2021-09-16"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">"PB02A"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"2020-08-25"</span><span class="p">,</span>
+        <span class="s2">"2020-10-20"</span><span class="p">,</span>
+        <span class="s2">"2020-11-18"</span><span class="p">,</span>
+        <span class="s2">"2020-12-03"</span><span class="p">,</span>
+        <span class="s2">"2020-12-08"</span><span class="p">,</span>
+        <span class="s2">"2021-02-17"</span><span class="p">,</span>
+        <span class="s2">"2021-03-10"</span><span class="p">,</span>
+        <span class="s2">"2021-04-14"</span><span class="p">,</span>
+        <span class="s2">"2021-05-18"</span><span class="p">,</span>
+        <span class="s2">"2021-05-27"</span><span class="p">,</span>
+        <span class="s2">"2021-08-17"</span><span class="p">,</span>
+        <span class="s2">"2021-09-16"</span><span class="p">,</span>
+        <span class="s2">"2021-04-26"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
 
-<span class="n">compensated_ds</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">compensate</span><span class="p">(</span><span class="n">groundwater_ds</span><span class="p">,</span> <span class="n">baro</span><span class="p">,</span> <span class="n">fieldwork_dates</span><span class="o">=</span><span class="n">fieldwork_days</span><span class="p">,</span> <span class="n">interpolate_method</span><span class="o">=</span><span class="s1">'linear'</span><span class="p">)</span>
+<span class="n">compensated_ds</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">compensate</span><span class="p">(</span>
+    <span class="n">groundwater_ds</span><span class="p">,</span> <span class="n">baro</span><span class="p">,</span> <span class="n">fieldwork_dates</span><span class="o">=</span><span class="n">fieldwork_days</span><span class="p">,</span> <span class="n">interpolate_method</span><span class="o">=</span><span class="s2">"linear"</span>
+<span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-11">fieldwork_days = {"PB01A": ['2020-08-25', '2020-10-20', '2020-11-18', '2020-12-03', '2020-12-08',
-                  '2021-02-17', '2021-03-10', '2021-04-14', '2021-05-18', '2021-05-27',
-                  '2021-08-17', '2021-09-16'],
-                  "PB02A": ['2020-08-25', '2020-10-20', '2020-11-18', '2020-12-03', '2020-12-08',
-                  '2021-02-17', '2021-03-10', '2021-04-14', '2021-05-18', '2021-05-27',
-                  '2021-08-17', '2021-09-16', '2021-04-26']}
+<div class="clipboard-copy-txt" id="cell-11">fieldwork_days = {
+    "PB01A": [
+        "2020-08-25",
+        "2020-10-20",
+        "2020-11-18",
+        "2020-12-03",
+        "2020-12-08",
+        "2021-02-17",
+        "2021-03-10",
+        "2021-04-14",
+        "2021-05-18",
+        "2021-05-27",
+        "2021-08-17",
+        "2021-09-16",
+    ],
+    "PB02A": [
+        "2020-08-25",
+        "2020-10-20",
+        "2020-11-18",
+        "2020-12-03",
+        "2020-12-08",
+        "2021-02-17",
+        "2021-03-10",
+        "2021-04-14",
+        "2021-05-18",
+        "2021-05-27",
+        "2021-08-17",
+        "2021-09-16",
+        "2021-04-26",
+    ],
+}
 
-compensated_ds = gs.compensate(groundwater_ds, baro, fieldwork_dates=fieldwork_days, interpolate_method='linear')</div>
+compensated_ds = gs.compensate(
+    groundwater_ds, baro, fieldwork_dates=fieldwork_days, interpolate_method="linear"
+)</div>
 </div>
 </div>
 </div>

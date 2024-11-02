@@ -826,30 +826,23 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">gensor</span> <span class="k">as</span> <span class="nn">gs</span>
+<span class="kn">from</span> <span class="nn">gensor</span> <span class="kn">import</span> <span class="n">read_from_csv</span>
 <span class="kn">from</span> <span class="nn">gensor.testdata</span> <span class="kn">import</span> <span class="n">all_paths</span><span class="p">,</span> <span class="n">pb02a_plain</span>
 
-<span class="kn">from</span> <span class="nn">gensor</span> <span class="kn">import</span> <span class="n">read_from_csv</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"[A-Za-z]</span><span class="si">{2}</span><span class="s2">\d</span><span class="si">{2}</span><span class="s2">[A-Za-z]</span><span class="si">{1}</span><span class="s2">|Barodiver"</span>
 
-<span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">'[A-Za-z]</span><span class="si">{2}</span><span class="s1">\d</span><span class="si">{2}</span><span class="s1">[A-Za-z]</span><span class="si">{1}</span><span class="s1">|Barodiver'</span>
-
-<span class="n">ds</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">all_paths</span><span class="p">,</span> 
-                    <span class="n">file_format</span><span class="o">=</span><span class="s1">'vanessen'</span><span class="p">,</span> 
-                    <span class="n">location_pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">all_paths</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">"vanessen"</span><span class="p">,</span> <span class="n">location_pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
 
 
-<span class="n">ds2</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">pb02a_plain</span><span class="p">,</span> 
-                    <span class="n">file_format</span><span class="o">=</span><span class="s1">'plain'</span><span class="p">,</span> 
-                    <span class="n">location</span><span class="o">=</span><span class="s1">'PB02A'</span><span class="p">,</span>
-                    <span class="n">sensor</span><span class="o">=</span><span class="s1">'AV336'</span><span class="p">)</span>
+<span class="n">ds2</span> <span class="o">=</span> <span class="n">read_from_csv</span><span class="p">(</span>
+    <span class="n">path</span><span class="o">=</span><span class="n">pb02a_plain</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">"PB02A"</span><span class="p">,</span> <span class="n">sensor</span><span class="o">=</span><span class="s2">"AV336"</span>
+<span class="p">)</span>
 
 <span class="n">ds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ds2</span><span class="p">)</span>
 
-<span class="n">baro</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stations</span><span class="o">=</span><span class="s1">'Barodiver'</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="s1">'pressure'</span><span class="p">)</span>
+<span class="n">baro</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stations</span><span class="o">=</span><span class="s2">"Barodiver"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">)</span>
 
-<span class="n">alts</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"PB01A"</span><span class="p">:</span> <span class="mf">31.48</span><span class="p">,</span>
-    <span class="s2">"PB02A"</span><span class="p">:</span> <span class="mf">31.68</span>
-    <span class="p">}</span>
+<span class="n">alts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"PB01A"</span><span class="p">:</span> <span class="mf">31.48</span><span class="p">,</span> <span class="s2">"PB02A"</span><span class="p">:</span> <span class="mf">31.68</span><span class="p">}</span>
 
 <span class="n">groundwater_ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stations</span><span class="o">=</span><span class="n">alts</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">variables</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">)</span>
 
@@ -870,30 +863,23 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="n">compensated_ds</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import gensor as gs
+from gensor import read_from_csv
 from gensor.testdata import all_paths, pb02a_plain
 
-from gensor import read_from_csv
+pattern = r"[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver"
 
-pattern = r'[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver'
-
-ds = read_from_csv(path=all_paths, 
-                    file_format='vanessen', 
-                    location_pattern=pattern)
+ds = read_from_csv(path=all_paths, file_format="vanessen", location_pattern=pattern)
 
 
-ds2 = read_from_csv(path=pb02a_plain, 
-                    file_format='plain', 
-                    location='PB02A',
-                    sensor='AV336')
+ds2 = read_from_csv(
+    path=pb02a_plain, file_format="plain", location="PB02A", sensor="AV336"
+)
 
 ds.add(ds2)
 
-baro = ds.filter(stations='Barodiver', variables='pressure')
+baro = ds.filter(stations="Barodiver", variables="pressure")
 
-alts = {
-    "PB01A": 31.48,
-    "PB02A": 31.68
-    }
+alts = {"PB01A": 31.48, "PB02A": 31.68}
 
 groundwater_ds = ds.filter(stations=alts.keys(), variables="pressure")
 
@@ -922,18 +908,36 @@ compensated_ds.plot()</div>
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
-Skipping file /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv due to missing metadata.
-Loading file: /home/runner/work/gensor/gensor/gensor/testdata/Barodiver_220427183008_BY222.csv
-Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_220427183019_AV319.csv
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO: Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO: Skipping file /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv due to missing metadata.
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO: Loading file: /home/runner/work/gensor/gensor/gensor/testdata/Barodiver_220427183008_BY222.csv
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO: Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_220427183019_AV319.csv
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO: Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB02A_plain.csv
 </pre>
 </div>
 </div>
@@ -943,18 +947,14 @@ Loading file: /home/runner/work/gensor/gensor/gensor/testdata/PB01A_moni_AV319_2
 <pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[1], line 20</span>
-<span class="ansi-green-intense-fg ansi-bold">     13</span> ds2 <span style="color: rgb(98,98,98)">=</span> read_from_csv(path<span style="color: rgb(98,98,98)">=</span>pb02a_plain, 
-<span class="ansi-green-intense-fg ansi-bold">     14</span>                     file_format<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">plain</span><span style="color: rgb(175,0,0)">'</span>, 
-<span class="ansi-green-intense-fg ansi-bold">     15</span>                     location<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">PB02A</span><span style="color: rgb(175,0,0)">'</span>,
-<span class="ansi-green-intense-fg ansi-bold">     16</span>                     sensor<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">AV336</span><span style="color: rgb(175,0,0)">'</span>)
-<span class="ansi-green-intense-fg ansi-bold">     18</span> ds<span style="color: rgb(98,98,98)">.</span>add(ds2)
-<span class="ansi-green-fg">---&gt; 20</span> baro <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ds</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">filter</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">stations</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">'</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Barodiver</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">'</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">variables</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">'</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">pressure</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">'</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">     22</span> alts <span style="color: rgb(98,98,98)">=</span> {
-<span class="ansi-green-intense-fg ansi-bold">     23</span>     <span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">PB01A</span><span style="color: rgb(175,0,0)">"</span>: <span style="color: rgb(98,98,98)">31.48</span>,
-<span class="ansi-green-intense-fg ansi-bold">     24</span>     <span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">PB02A</span><span style="color: rgb(175,0,0)">"</span>: <span style="color: rgb(98,98,98)">31.68</span>
-<span class="ansi-green-intense-fg ansi-bold">     25</span>     }
-<span class="ansi-green-intense-fg ansi-bold">     27</span> groundwater_ds <span style="color: rgb(98,98,98)">=</span> ds<span style="color: rgb(98,98,98)">.</span>filter(stations<span style="color: rgb(98,98,98)">=</span>alts<span style="color: rgb(98,98,98)">.</span>keys(), variables<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">pressure</span><span style="color: rgb(175,0,0)">"</span>)
+Cell <span class="ansi-green-fg">In[1], line 16</span>
+<span class="ansi-green-intense-fg ansi-bold">     10</span> ds2 <span style="color: rgb(98,98,98)">=</span> read_from_csv(
+<span class="ansi-green-intense-fg ansi-bold">     11</span>     path<span style="color: rgb(98,98,98)">=</span>pb02a_plain, file_format<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">plain</span><span style="color: rgb(175,0,0)">"</span>, location<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">PB02A</span><span style="color: rgb(175,0,0)">"</span>, sensor<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">AV336</span><span style="color: rgb(175,0,0)">"</span>
+<span class="ansi-green-intense-fg ansi-bold">     12</span> )
+<span class="ansi-green-intense-fg ansi-bold">     14</span> ds<span style="color: rgb(98,98,98)">.</span>add(ds2)
+<span class="ansi-green-fg">---&gt; 16</span> baro <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ds</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">filter</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">stations</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">"</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Barodiver</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">variables</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">"</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">pressure</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">"</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">     18</span> alts <span style="color: rgb(98,98,98)">=</span> {<span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">PB01A</span><span style="color: rgb(175,0,0)">"</span>: <span style="color: rgb(98,98,98)">31.48</span>, <span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">PB02A</span><span style="color: rgb(175,0,0)">"</span>: <span style="color: rgb(98,98,98)">31.68</span>}
+<span class="ansi-green-intense-fg ansi-bold">     20</span> groundwater_ds <span style="color: rgb(98,98,98)">=</span> ds<span style="color: rgb(98,98,98)">.</span>filter(stations<span style="color: rgb(98,98,98)">=</span>alts<span style="color: rgb(98,98,98)">.</span>keys(), variables<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">pressure</span><span style="color: rgb(175,0,0)">"</span>)
 
 File <span class="ansi-green-fg">~/work/gensor/gensor/gensor/core/dataset.py:129</span>, in <span class="ansi-cyan-fg">Dataset.filter</span><span class="ansi-blue-fg">(self, location, variable, unit, **kwargs)</span>
 <span class="ansi-green-intense-fg ansi-bold">    126</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">isinstance</span>(value, <span style="color: rgb(0,135,0)">str</span>):
@@ -1112,18 +1112,18 @@ Cell <span class="ansi-green-fg">In[2], line 1</span>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ts_diff</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">'difference'</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ts_diff</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"difference"</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
 <span class="n">ts_diff_dips</span> <span class="o">=</span> <span class="n">ts_diff</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ts_diff</span><span class="o">.</span><span class="n">ts</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span>
 
 <span class="c1"># we've obtained a timeseries which has identified outliers. We can use those to mask our original series.</span>
-<span class="n">ts_identified_outliers</span> <span class="o">=</span> <span class="n">ts_diff_dips</span><span class="o">.</span><span class="n">detect_outliers</span><span class="p">(</span><span class="s1">'zscore'</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">ts_identified_outliers</span> <span class="o">=</span> <span class="n">ts_diff_dips</span><span class="o">.</span><span class="n">detect_outliers</span><span class="p">(</span><span class="s2">"zscore"</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 <span class="n">ts_identified_outliers</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">include_outliers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">ts_diff = ts.transform('difference', periods=12)
+<div class="clipboard-copy-txt" id="cell-3">ts_diff = ts.transform("difference", periods=12)
 ts_diff_dips = ts_diff.loc[ts_diff.ts &lt; 0]
 
 # we've obtained a timeseries which has identified outliers. We can use those to mask our original series.
-ts_identified_outliers = ts_diff_dips.detect_outliers('zscore', threshold=1.0)
+ts_identified_outliers = ts_diff_dips.detect_outliers("zscore", threshold=1.0)
 ts_identified_outliers.plot(include_outliers=True)</div>
 </div>
 </div>
@@ -1140,7 +1140,7 @@ ts_identified_outliers.plot(include_outliers=True)</div>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[3], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> ts_diff <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ts</span><span style="color: rgb(98,98,98)">.</span>transform(<span style="color: rgb(175,0,0)">'</span><span style="color: rgb(175,0,0)">difference</span><span style="color: rgb(175,0,0)">'</span>, periods<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">12</span>)
+<span class="ansi-green-fg">----&gt; 1</span> ts_diff <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ts</span><span style="color: rgb(98,98,98)">.</span>transform(<span style="color: rgb(175,0,0)">"</span><span style="color: rgb(175,0,0)">difference</span><span style="color: rgb(175,0,0)">"</span>, periods<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">12</span>)
 <span class="ansi-green-intense-fg ansi-bold">      2</span> ts_diff_dips <span style="color: rgb(98,98,98)">=</span> ts_diff<span style="color: rgb(98,98,98)">.</span>loc[ts_diff<span style="color: rgb(98,98,98)">.</span>ts <span style="color: rgb(98,98,98)">&lt;</span> <span style="color: rgb(98,98,98)">0</span>]
 <span class="ansi-green-intense-fg ansi-bold">      4</span> <span style="color: rgb(95,135,135)"># we've obtained a timeseries which has identified outliers. We can use those to mask our original series.</span>
 
