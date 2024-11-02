@@ -17,15 +17,15 @@ def test_compensator_with_valid_data(
         barometric=synthetic_barometric_pressure_timeseries,
     )
 
-    assert isinstance(
-        compensated, Timeseries
-    ), "Compensation should return a valid Timeseries."
-    assert (
-        compensated.variable == "head"
-    ), "Compensated Timeseries should have type 'head'."
-    assert (
-        compensated.unit == "m asl"
-    ), "Compensated Timeseries should have unit 'm asl'."
+    assert isinstance(compensated, Timeseries), (
+        "Compensation should return a valid Timeseries."
+    )
+    assert compensated.variable == "head", (
+        "Compensated Timeseries should have type 'head'."
+    )
+    assert compensated.unit == "m asl", (
+        "Compensated Timeseries should have unit 'm asl'."
+    )
 
     pd.testing.assert_series_equal(
         compensated.ts,
@@ -44,15 +44,15 @@ def test_compensation_with_baro_as_float(
         raw=synthetic_submerged_timeseries, barometric=barometric_value
     )
 
-    assert isinstance(
-        compensated, Timeseries
-    ), "Compensation should return a valid Timeseries."
-    assert (
-        compensated.variable == "head"
-    ), "Compensated Timeseries should have type 'head'."
-    assert (
-        compensated.unit == "m asl"
-    ), "Compensated Timeseries should have unit 'm asl'."
+    assert isinstance(compensated, Timeseries), (
+        "Compensation should return a valid Timeseries."
+    )
+    assert compensated.variable == "head", (
+        "Compensated Timeseries should have type 'head'."
+    )
+    assert compensated.unit == "m asl", (
+        "Compensated Timeseries should have unit 'm asl'."
+    )
 
     pd.testing.assert_series_equal(
         compensated.ts,

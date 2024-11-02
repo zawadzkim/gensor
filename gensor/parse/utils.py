@@ -10,6 +10,18 @@ from pandas import DataFrame, read_csv, to_datetime
 def get_data(
     text: str, data_start: str, data_end: str, column_names: list
 ) -> DataFrame:
+    """Search for data in the file.
+
+    Parameters:
+        text (str): string obtained from the CSV file.
+        data_start (str): string at the first row of the data.
+        data_end (str): string at the last row of the data.
+        column_names (list): list of expected column names.
+
+    Returns:
+        pd.DataFrame
+    """
+
     data_io = StringIO(text[text.index(data_start) : text.index(data_end)])
 
     df = read_csv(
@@ -20,7 +32,15 @@ def get_data(
 
 
 def get_metadata(text: str, patterns: dict) -> dict:
-    """Search for metadata in the file header with given regex patterns."""
+    """Search for metadata in the file header with given regex patterns.
+
+    Parameters:
+        text (str): string obtained from the CSV file.
+        patterns (dict): regex patterns matching the location and sensor information.
+
+    Returns:
+        dict: metadata of the timeseries.
+    """
     metadata = {}
 
     for k, v in patterns.items():
@@ -36,7 +56,7 @@ def get_metadata(text: str, patterns: dict) -> dict:
 def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
     """Detect the encoding of a file using chardet.
 
-    Args:
+    Parameters:
         path (Path): The path to the file.
         num_bytes (int): Number of bytes to read for encoding detection (default is 1024).
 
@@ -52,7 +72,7 @@ def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
 def handle_timestamps(df: DataFrame, tz_string: str) -> DataFrame:
     """Converts timestamps in the dataframe to the specified timezone (e.g., 'UTC+1').
 
-    Args:
+    Parameters:
         df (pd.DataFrame): The dataframe with timestamps.
         tz_string (str): A timezone string like 'UTC+1' or 'UTC-5'.
 

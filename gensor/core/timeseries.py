@@ -7,11 +7,8 @@ import pandera as pa
 import pydantic as pyd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from sqlalchemy import Table
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from gensor.core.base import BaseTimeseries
-from gensor.db import DatabaseConnection
 
 ts_schema = pa.SeriesSchema(
     float,
@@ -50,84 +47,12 @@ class Timeseries(BaseTimeseries):
 
         return self.sensor == other.sensor and self.sensor_alt == other.sensor_alt
 
-    def to_sql(self, db: DatabaseConnection) -> str:
-        """Save timeseries to SQLite database.
-
-        The Timeseries data is uploaded to the SQL database by using the pandas
-        `to_sql` method. Additionally, metadata about the timeseries is stored in the
-        'timeseries_metadata' table.
-
-        Parameters:
-            db (DatabaseConnection): The database connection object.
-
-        Returns:
-            A message indicating the number of rows inserted into the database.
-        """
-        # Format the start timestamp as 'YYYYMMDDHHMMSS'
-        timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
-
-        schema_name = f"{self.location}_{self.sensor}_{self.variable}_{self.unit}_{timestamp_start_fmt}".lower()
-
-        # Ensure the index is a pandas DatetimeIndex
-        if isinstance(self.ts.index, pd.DatetimeIndex):
-            utc_index = (
-                self.ts.index.tz_convert("UTC")
-                if self.ts.index.tz is not None
-                else self.ts.index
-            )
-        else:
-            message = "The index is not a DatetimeIndex and cannot be converted to UTC."
-            raise TypeError(message)
-
-        # Prepare the timeseries data as records for insertion
-        series_as_records = list(
-            zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
-        )
-
-        with db as con:
-            # Create the timeseries table if it doesn't exist
-            schema = db.create_table(schema_name, self.variable)
-
-            # Ensure that the timeseries_metadata table exists
-            metadata_schema = db.metadata.tables["__timeseries_metadata__"]
-
-            if isinstance(schema, Table):
-                # Insert the timeseries data
-                stmt = sqlite_insert(schema).values(series_as_records)
-                stmt = stmt.on_conflict_do_nothing(index_elements=["timestamp"])
-                con.execute(stmt)
-                con.commit()
-
-                metadata_stmt = sqlite_insert(metadata_schema).values(
-                    table_name=schema_name,
-                    location=self.location,
-                    sensor=self.sensor,
-                    variable=self.variable,
-                    unit=self.unit,
-                    logger_alt=self.sensor_alt,
-                    location_alt=self.sensor_alt,
-                    timestamp_start=timestamp_start_fmt,
-                    timestamp_end=self.end.strftime("%Y%m%d%H%M%S"),
-                )
-
-                metadata_stmt = metadata_stmt.on_conflict_do_update(
-                    index_elements=["table_name"],
-                    set_={
-                        "timestamp_start": timestamp_start_fmt,
-                        "timestamp_end": self.end.strftime("%Y%m%d%H%M%S"),
-                    },
-                )
-
-                con.execute(metadata_stmt)
-                con.commit()
-
-        return f"{schema_name} table and metadata updated."
-
     def plot(
         self,
         include_outliers: bool = False,
         ax: Axes | None = None,
-        **plot_kwargs: Any,
+        plot_kwargs: dict[str, Any] | None = None,
+        legend_kwargs: dict[str, Any] | None = None,
     ) -> tuple[Figure, Axes]:
         """Plots the timeseries data.
 
@@ -135,12 +60,18 @@ class Timeseries(BaseTimeseries):
             include_outliers (bool): Whether to include outliers in the plot.
             ax (matplotlib.axes.Axes, optional): Matplotlib axes object to plot on.
                 If None, a new figure and axes are created.
-            **plot_kwargs: Additional keyword arguments passed to plt.plot.
+            plot_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.plot() method to customize the plot.
+            legend_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.legend() to customize the legend.
 
         Returns:
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
-        fig, ax = super().plot(include_outliers=include_outliers, ax=ax, **plot_kwargs)
+        fig, ax = super().plot(
+            include_outliers=include_outliers,
+            ax=ax,
+            plot_kwargs=plot_kwargs,
+            legend_kwargs=legend_kwargs,
+        )
 
         ax.set_title(f"{self.variable.capitalize()} at {self.location} ({self.sensor})")
 

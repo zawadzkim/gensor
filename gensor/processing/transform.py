@@ -93,7 +93,7 @@ class Transformation:
         Returns:
             pandas.Series: The Box-Cox transformed time series data.
         """
-        lmbda = kwargs.get("lmbda", None)
+        lmbda = kwargs.get("lmbda")
 
         if (self.data <= 0).any():
             message = (

@@ -49,14 +49,14 @@ class BaseTimeseries(pyd.BaseModel):
         arbitrary_types_allowed=True, validate_assignment=True
     )
 
-    ts: pd.Series = pyd.Field(repr=False)
+    ts: pd.Series = pyd.Field(repr=False, exclude=True)
     variable: Literal[
         "temperature", "pressure", "conductivity", "flux", "head", "depth"
     ]
     unit: Literal["degc", "cmh2o", "ms/cm", "m/s", "m asl", "m"]
     location: str | None = None
-    outliers: pd.Series | None = pyd.Field(default=None, repr=False)
-    transformation: Any = pyd.Field(default=None, repr=False)
+    outliers: pd.Series | None = pyd.Field(default=None, repr=False, exclude=True)
+    transformation: Any = pyd.Field(default=None, repr=False, exclude=True)
 
     @pyd.computed_field()  # type: ignore[prop-decorator]
     @property
@@ -67,6 +67,11 @@ class BaseTimeseries(pyd.BaseModel):
     @property
     def end(self) -> pd.Timestamp | Any:
         return self.ts.index.max()
+
+    @pyd.field_serializer("start", "end")
+    def serialize_timestamps(self, value: pd.Timestamp | None) -> str | None:
+        """Serialize `pd.Timestamp` to ISO format."""
+        return value.strftime("%Y%m%d%H%M%S") if value is not None else None
 
     def __eq__(self, other: object) -> bool:
         """Check equality based on location, sensor, variable, unit and sensor_alt."""
@@ -262,19 +267,29 @@ class BaseTimeseries(pyd.BaseModel):
         `to_sql` method. Additionally, metadata about the timeseries is stored in the
         'timeseries_metadata' table.
 
-        Args:
+        Parameters:
             db (DatabaseConnection): The database connection object.
 
         Returns:
             str: A message indicating the number of rows inserted into the database.
         """
-        # Format the start timestamp as 'YYYYMMDDHHMMSS'
-        timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
 
-        # Construct the schema name using the location, sensor, variable, unit, and timestamp
-        schema_name = (
-            f"{self.location}_{self.variable}_{self.unit}_{timestamp_start_fmt}".lower()
-        )
+        def separate_metadata() -> tuple:
+            _core_metadata_fields = {"location", "variable", "unit", "start", "end"}
+
+            core_metadata = self.model_dump(include=_core_metadata_fields)
+            core_metadata.update({
+                "cls": f"{self.__module__}.{self.__class__.__name__}"
+            })
+
+            extra_metadata = self.model_dump(exclude=_core_metadata_fields)
+
+            return core_metadata, extra_metadata
+
+        timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
+        timestamp_end_fmt = self.end.strftime("%Y%m%d%H%M%S")
+
+        schema_name = f"{self.location}_{self.variable}_{self.unit}".lower()
 
         # Ensure the index is a pandas DatetimeIndex
         if isinstance(self.ts.index, pd.DatetimeIndex):
@@ -287,44 +302,39 @@ class BaseTimeseries(pyd.BaseModel):
             message = "The index is not a DatetimeIndex and cannot be converted to UTC."
             raise TypeError(message)
 
-        # Prepare the timeseries data as records for insertion
         series_as_records = list(
             zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
         )
 
-        with db as con:
-            # Create the timeseries table if it doesn't exist
-            schema = db.create_table(schema_name, self.variable)
+        core_metadata, extra_metadata = separate_metadata()
 
-            # Ensure that the timeseries_metadata table exists
+        metadata_entry = {
+            **core_metadata,
+            "extra": extra_metadata,
+            "table_name": schema_name,
+        }
+
+        with db as con:
+            schema = db.create_table(schema_name, self.variable)
             metadata_schema = db.metadata.tables["__timeseries_metadata__"]
 
             if isinstance(schema, Table):
-                # Insert the timeseries data
                 stmt = sqlite_insert(schema).values(series_as_records)
                 stmt = stmt.on_conflict_do_nothing(index_elements=["timestamp"])
                 con.execute(stmt)
-                con.commit()
 
-                metadata_stmt = sqlite_insert(metadata_schema).values(
-                    table_name=schema_name,
-                    location=self.location,
-                    variable=self.variable,
-                    unit=self.unit,
-                    timestamp_start=timestamp_start_fmt,
-                    timestamp_end=self.end.strftime("%Y%m%d%H%M%S"),
-                )
-
+                metadata_stmt = sqlite_insert(metadata_schema).values(metadata_entry)
                 metadata_stmt = metadata_stmt.on_conflict_do_update(
                     index_elements=["table_name"],
                     set_={
-                        "timestamp_start": timestamp_start_fmt,
-                        "timestamp_end": self.end.strftime("%Y%m%d%H%M%S"),
+                        "start": timestamp_start_fmt,
+                        "end": timestamp_end_fmt,
                     },
                 )
-
                 con.execute(metadata_stmt)
-                con.commit()
+
+            # Commit all changes at once
+            con.commit()
 
         return f"{schema_name} table and metadata updated."
 
@@ -332,19 +342,24 @@ class BaseTimeseries(pyd.BaseModel):
         self: T,
         include_outliers: bool = False,
         ax: Axes | None = None,
-        **plot_kwargs: Any,
+        plot_kwargs: dict[str, Any] | None = None,
+        legend_kwargs: dict[str, Any] | None = None,
     ) -> tuple[Figure, Axes]:
         """Plots the timeseries data.
 
-        Args:
+        Parameters:
             include_outliers (bool): Whether to include outliers in the plot.
             ax (matplotlib.axes.Axes, optional): Matplotlib axes object to plot on.
                 If None, a new figure and axes are created.
-            **plot_kwargs: Additional keyword arguments passed to plt.plot.
+            plot_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.plot() method to customize the plot.
+            legend_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.legend() to customize the legend.
 
         Returns:
             (fig, ax): Matplotlib figure and axes to allow further customization.
         """
+
+        plot_kwargs = plot_kwargs or {}
+        legend_kwargs = legend_kwargs or {}
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 5))
@@ -364,11 +379,13 @@ class BaseTimeseries(pyd.BaseModel):
             ax.scatter(
                 self.outliers.index, self.outliers, color="red", label="Outliers"
             )
-        plt.xticks(rotation=45)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+
         ax.set_xlabel("Time")
         ax.set_ylabel(f"{self.variable} ({self.unit})")
         ax.set_title(f"{self.variable.capitalize()} at {self.location}")
 
-        ax.legend()
+        ax.legend(**legend_kwargs)
 
         return fig, ax

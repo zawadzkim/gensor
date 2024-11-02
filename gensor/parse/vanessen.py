@@ -1,11 +1,14 @@
 """Logic parsing CSV files from van Essen Instruments Divers."""
 
+import logging
 from pathlib import Path
 from typing import Any
 
 from ..config import VARIABLE_TYPES_AND_UNITS
 from ..core.timeseries import Timeseries
 from .utils import detect_encoding, get_data, get_metadata, handle_timestamps
+
+logger = logging.getLogger(__name__)
 
 
 def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
@@ -51,7 +54,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
         metadata = get_metadata(text, patterns)
 
         if not metadata:
-            print(f"Skipping file {path} due to missing metadata.")
+            logger.info(f"Skipping file {path} due to missing metadata.")
             return []
 
         data_start = "Date/time"

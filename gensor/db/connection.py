@@ -9,6 +9,7 @@ from typing import Any
 
 import pydantic as pyd
 from sqlalchemy import (
+    JSON,
     Column,
     Connection,
     Engine,
@@ -100,13 +101,12 @@ class DatabaseConnection(pyd.BaseModel):
             Column("id", Integer, primary_key=True),
             Column("table_name", String, unique=True),
             Column("location", String),
-            Column("sensor", String),
             Column("variable", String),
             Column("unit", String),
-            Column("logger_alt", Float, nullable=True),
-            Column("location_alt", Float, nullable=True),
-            Column("timestamp_start", String, nullable=True),
-            Column("timestamp_end", String, nullable=True),
+            Column("start", String, nullable=True),
+            Column("end", String, nullable=True),
+            Column("extra", JSON, nullable=True),
+            Column("cls", String, nullable=False),
         )
 
         if self.engine:
