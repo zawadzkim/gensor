@@ -152,5 +152,25 @@ def test_unequal_timeseries(synthetic_submerged_timeseries):
     assert data != other
 
 
+def test_assign_with_loc(synthetic_submerged_timeseries):
+    """Test assignment functionality using the loc indexer."""
+
+    timestamp = pd.Timestamp("2024-01-01 01:00:00+00:00")
+    new_value = 1400.0
+
+    synthetic_submerged_timeseries.loc[timestamp] = new_value
+
+    updated_value = synthetic_submerged_timeseries.loc[timestamp]
+    assert updated_value == new_value, (
+        f"Expected value {new_value}, but got {updated_value}"
+    )
+
+    for other_timestamp, other_value in synthetic_submerged_timeseries.ts.items():
+        if other_timestamp != timestamp:
+            assert synthetic_submerged_timeseries.loc[other_timestamp] == other_value, (
+                f"Unexpected modification at timestamp {other_timestamp}"
+            )
+
+
 if __name__ == "__main__":
     pytest.main()

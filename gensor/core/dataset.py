@@ -140,7 +140,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
             return Dataset()
 
         if len(matching_timeseries) == 1:
-            return matching_timeseries[0]
+            return matching_timeseries[0].model_copy(deep=True)
 
         return self.model_copy(update={"timeseries": matching_timeseries})
 

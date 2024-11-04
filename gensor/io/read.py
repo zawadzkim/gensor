@@ -156,22 +156,17 @@ def read_from_sql(
 
     # fmt: off
     if load_all:
-        schemas = db.get_tables()
-        if schemas:
-            timeseries = [_read_from_sql(ts_name)
-                          for ts_name in schemas]
-
-            return Dataset(timeseries=[ts for ts in timeseries if ts is not None])
-        else:
-            return Dataset()
+        schemas = db.all_tables
     else:
+        schemas = db.get_timeseries_metadata(location=location, variable=variable, unit=unit, **kwargs)["table_name"].to_list()
 
-        schema_name = (
-            f"{location}_{variable}_{unit}".lower()
-        )
-        # This will always returm Timeseries or Dataset.
-        return _read_from_sql(schema_name)  # type: ignore[no-any-return]
+    if schemas:
+        timeseries = [_read_from_sql(ts_name)
+                        for ts_name in schemas]
 
+        return Dataset(timeseries=[ts for ts in timeseries if ts is not None])
+    else:
+        return Dataset()
 
 # fmt: on
 

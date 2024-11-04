@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal, TypeVar
+import hashlib
 
 import pandas as pd
 import pandera as pa
@@ -306,6 +307,7 @@ class BaseTimeseries(pyd.BaseModel):
             zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
         )
 
+        # Extra metadata are attributes additional to BaseTimeseries
         core_metadata, extra_metadata = separate_metadata()
 
         metadata_entry = {
@@ -314,6 +316,17 @@ class BaseTimeseries(pyd.BaseModel):
             "table_name": schema_name,
         }
 
+        unique_hash = hashlib.sha1(schema_name.encode("utf-8")).hexdigest()[:5]
+        
+        created_table = db.get_timeseries_metadata(
+            location=self.location,
+            variable=self.variable,
+            unit=self.unit,
+            **extra_metadata
+        )
+
+        
+        
         with db as con:
             schema = db.create_table(schema_name, self.variable)
             metadata_schema = db.metadata.tables["__timeseries_metadata__"]

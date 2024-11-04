@@ -4,9 +4,11 @@ Classes:
     DatabaseConnection: Database connection object
 """
 
+import logging
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import pydantic as pyd
 from sqlalchemy import (
     JSON,
@@ -18,10 +20,14 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    and_,
     create_engine,
+    func,
 )
 
 from ..exceptions import DatabaseNotFound
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConnection(pyd.BaseModel):
@@ -44,6 +50,11 @@ class DatabaseConnection(pyd.BaseModel):
         if not self.db_directory.exists():
             raise DatabaseNotFound()
         return f"sqlite:///{self.db_directory}/{self.db_name}"
+    
+    @pyd.computed_field
+    @property
+    def all_tables(self) -> list:
+        return self.get_timeseries_metadata()["table_name"].to_list()
 
     def connect(self) -> Connection:
         """Connect to the database and initialize the engine.
@@ -78,13 +89,62 @@ class DatabaseConnection(pyd.BaseModel):
         """Dispose of the engine when exiting the `with` block."""
         self.dispose()
 
-    def get_tables(self) -> list | None:
+    def get_timeseries_metadata(
+        self,
+        location: str | None = None,
+        variable: str | None = None,
+        unit: str | None = None,
+        **extra_filters: dict,
+    ) -> str | None:
+        """
+        Locate a table in the '__timeseries_metadata__' table by matching basic attributes
+        and specific keys in the 'extra' JSON column.
+
+        Parameters:
+            location (str): Location attribute to match.
+            variable (str): Variable attribute to match.
+            unit (str): Unit attribute to match.
+            **extra_filters: Additional filters to match keys within the 'extra' JSON column.
+
+        Returns:
+            str | None: The name of the matching table or None if no table is found.
+        """
+        with self as con:
+            if "__timeseries_metadata__" not in self.metadata.tables:
+                logger.info("The metadata table does not exist in this database.")
+                return None
+
+            metadata_table = self.metadata.tables["__timeseries_metadata__"]
+
+            base_filters = []
+
+            if location:
+                base_filters.append(metadata_table.c.location.ilike(location))
+            if variable:
+                base_filters.append(metadata_table.c.variable.ilike(variable))
+            if unit:
+                base_filters.append(metadata_table.c.unit.ilike(unit))
+
+            base_filters.extend(
+                func.json_extract(metadata_table.c.extra, f"$.{key}").ilike(value)
+                for key, value in extra_filters.items()
+            )
+            # True in and_(True, *arg) fixis FutureWarning of dissallowing empty
+            # filters in the future.
+            query = metadata_table.select().where(and_(True, *base_filters))
+
+            result = con.execute(query).fetchall()
+
+            return pd.DataFrame(result).set_index("id") if result else None
+
+
+    def _get_table_list(self) -> list | None:
         """Return the list of tables, excluding the 'timeseries_metadata' table."""
         with self:
             tables = self.metadata.tables
 
             if not tables:
-                print("This database has no tables.")
+                logger.info("This database has no tables.")
                 return None
             else:
                 filtered_tables = [
@@ -92,7 +152,7 @@ class DatabaseConnection(pyd.BaseModel):
                 ]
                 return filtered_tables
 
-    def create_metadata(self) -> str | Table:
+    def create_metadata(self) -> Table | None:
         """Create a metadata table if it doesn't exist yet and store ts metadata."""
 
         metadata_table = Table(
@@ -114,7 +174,8 @@ class DatabaseConnection(pyd.BaseModel):
             self.metadata.reflect(bind=self.engine)
             return metadata_table
         else:
-            return "Engine does not exist."
+            logger.info("Engine does not exist.")
+            return
 
     def create_table(self, schema_name: str, column_name: str) -> Table | str:
         """Create a table in the database.
@@ -141,4 +202,5 @@ class DatabaseConnection(pyd.BaseModel):
             self.metadata.reflect(bind=self.engine)
             return ts_table
         else:
-            return "Engine does not exist."
+            logger.info("Engine does not exist.")
+            return
