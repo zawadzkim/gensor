@@ -1,11 +1,10 @@
 #! /usr/bin/env bash
+git config --global --add safe.directory /workspaces/gensor
 
 # Install Dependencies
-poetry install --with dev
+poetry install
 
 # Install pre-commit hooks
 poetry run pre-commit install --install-hooks
-
-git config --global filter.nbstripout.clean /workspaces/gensor/.venv/bin/nbstripout
 
 mkdir -p .logs
