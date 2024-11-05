@@ -18,12 +18,12 @@ class TimeseriesIndexer:
         self.indexer = indexer
 
     def __getitem__(self, key: str) -> Any:
-        """Allows using the indexer (e.g., loc) and wraps the result in a Timeseries."""
+        """Allows using the indexer (e.g., loc) and wraps the result in the parent Timeseries."""
 
         result = self.indexer[key]
 
         if isinstance(result, pd.Series):
-            return self.parent.model_copy(update={"ts": result}, deep=True)
+            return self.parent.model_copy(update={"ts": result}, deep=False)
 
         if isinstance(result, (int | float | str | pd.Timestamp | np.float64)):
             return result
