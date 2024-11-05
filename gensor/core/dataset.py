@@ -36,6 +36,10 @@ class Dataset(pyd.BaseModel, Generic[T]):
     def __getitem__(self, index: int) -> T | None:
         """Retrieve a Timeseries object by its index in the dataset.
 
+        !!! warning
+            Using index will return the reference to the timeseries. If you need a copy,
+            use .filter() instead of Dataset[index]
+
         Parameters:
             index (int): The index of the Timeseries to retrieve.
 
@@ -46,7 +50,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
             IndexError: If the index is out of range.
         """
         try:
-            return self.timeseries[index].model_copy(deep=True)
+            return self.timeseries[index]
         except IndexError:
             raise IndexOutOfRangeError(index, len(self)) from None
 

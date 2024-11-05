@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from typing import Any, Literal, TypeVar
 
 import pandas as pd
@@ -107,7 +108,9 @@ class BaseTimeseries(pyd.BaseModel):
                     result = ts_attr(*args, **kwargs)
                     # If the result is a Series, return a new Timeseries; otherwise, return the result
                     if isinstance(result, pd.Series):
-                        return self.model_copy(update={"ts": result}, deep=True)
+                        return self.model_copy(
+                            update={"ts": deepcopy(result)}, deep=True
+                        )
 
                     return result
 
