@@ -95,9 +95,9 @@ def test_mask_fieldwork_days(pb01a_fieldwork, pb01a_timeseries, baro_timeseries)
     """Test removal of erroneous measurements with a mask of fieldwork events"""
 
     comp_ts = compensate(
-        raw=pb01a_timeseries[0],
+        raw=pb01a_timeseries,
         barometric=baro_timeseries[0],
         fieldwork_dates=pb01a_fieldwork,
     )
 
-    assert len(comp_ts.ts) == len(pb01a_timeseries[0].ts)
+    assert len(comp_ts.ts) == len(pb01a_timeseries.ts)
