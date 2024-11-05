@@ -30,3 +30,8 @@ class TimeseriesIndexer:
 
         message = f"Expected pd.Series, but got {type(result)} instead."
         raise TypeError(message)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Allows setting values directly using the indexer (e.g., loc, iloc)."""
+
+        self.indexer[key] = value

@@ -48,15 +48,10 @@ def test_save_and_load_timeseries(db, baro_timeseries):
     assert "table and metadata updated" in message
 
     loaded_ts = read_from_sql(
-        db=db,
-        load_all=False,
-        location=ts.location,
-        variable=ts.variable,
-        unit=ts.unit,
-        timestamp_start=ts.start,
+        db=db, load_all=False, location=ts.location, variable=ts.variable, unit=ts.unit
     )
 
-    assert ts == loaded_ts, "Loaded timeseries should match the saved timeseries."
+    assert ts == loaded_ts[0], "Loaded timeseries should match the saved timeseries."
 
 
 def test_save_and_load_dataset(db, baro_timeseries):
@@ -70,5 +65,25 @@ def test_save_and_load_dataset(db, baro_timeseries):
     )
 
     assert len(loaded_ds.timeseries) == len(baro_timeseries), (
-        "The loaded dataset should match the saved dataset."
+        f"The loaded dataset should match the saved dataset. {len(loaded_ds.timeseries)} vs {len(baro_timeseries)}"
+    )
+
+
+def test_locate_table_by_attributes(db, baro_timeseries):
+    """Test locating a table by basic attributes and extra keys."""
+
+    ts = baro_timeseries[0]
+    extra_info = {"sensor": ts.sensor}
+
+    ts.to_sql(db)
+
+    located_table = db.get_timeseries_metadata(
+        location=ts.location, variable=ts.variable, unit=ts.unit, **extra_info
+    )
+
+    assert located_table["location"].iloc[0] == ts.location, (
+        f"Expected to sensor name '{ts.location}', but got '{located_table[0][2]}'"
+    )
+    assert located_table["extra"].iloc[0]["sensor"] == ts.sensor, (
+        f"Expected to sensor name '{ts.sensor}', but got '{located_table[0][7]}'"
     )

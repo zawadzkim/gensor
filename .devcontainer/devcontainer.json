@@ -19,9 +19,11 @@
                 "editorconfig.editorconfig",
                 "ms-vscode.makefile-tools",
                 "ms-python.python",
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                "github.vscode-pull-request-github"
             ],
             "settings": {
+                "files.eol": "\n",
                 "python.testing.pytestArgs": ["tests"],
                 "python.testing.unittestEnabled": false,
                 "python.testing.pytestEnabled": true,
