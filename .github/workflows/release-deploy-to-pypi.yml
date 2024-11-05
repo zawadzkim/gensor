@@ -25,12 +25,16 @@ jobs:
           version=$(poetry version -s)
           echo "VERSION=$version" >> $GITHUB_ENV
 
-      - name: Create Git tag
+      - name: Create Git tag if not exists
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag v${{ env.VERSION }}
-          git push origin v${{ env.VERSION }}
+          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Tag v${{ env.VERSION }} already exists. Skipping tag creation."
+          else
+            git tag v${{ env.VERSION }}
+            git push origin v${{ env.VERSION }}
+          fi
 
       - name: Create GitHub Release
         id: create_release
