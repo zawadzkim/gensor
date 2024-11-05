@@ -46,7 +46,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
             IndexError: If the index is out of range.
         """
         try:
-            return self.timeseries[index]
+            return self.timeseries[index].model_copy(deep=True)
         except IndexError:
             raise IndexOutOfRangeError(index, len(self)) from None
 
