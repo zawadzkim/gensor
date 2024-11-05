@@ -48,15 +48,10 @@ def test_save_and_load_timeseries(db, baro_timeseries):
     assert "table and metadata updated" in message
 
     loaded_ts = read_from_sql(
-        db=db,
-        load_all=False,
-        location=ts.location,
-        variable=ts.variable,
-        unit=ts.unit,
-        timestamp_start=ts.start,
+        db=db, load_all=False, location=ts.location, variable=ts.variable, unit=ts.unit
     )
 
-    assert ts == loaded_ts[0], f"Loaded timeseries should match the saved timeseries."
+    assert ts == loaded_ts[0], "Loaded timeseries should match the saved timeseries."
 
 
 def test_save_and_load_dataset(db, baro_timeseries):

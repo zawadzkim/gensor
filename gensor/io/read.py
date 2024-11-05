@@ -82,7 +82,7 @@ def read_from_csv(
 
 def read_from_sql(
     db: DatabaseConnection,
-    load_all: bool,
+    load_all: bool = True,
     location: str | None = None,
     variable: str | None = None,
     unit: str | None = None,
@@ -98,23 +98,36 @@ def read_from_sql(
         location (str): The station name.
         variable (str): The measurement type.
         unit (str): The unit of the measurement.
+        timestamp_start (pd.Timestamp, optional): Start timestamp filter.
+        timestamp_stop (pd.Timestamp, optional): End timestamp filter.
+        **kwargs (dict): Any additional filters matching attributes of the particular
+            timeseries.
 
     Returns:
-        Timeseries: The Timeseries object retrieved from the database.
-
-    Raises:
-        ValueError: If the DataFrame cannot be retrieved or if it's empty.
-        TypeError: If the retrieved data is not a DataFrame or is of incorrect type.
+        Dataset: Dataset with retrieved objects or an empty Dataset.
     """
 
-    def _read_from_sql(schema_name: str) -> Any:
+    def _read_data_from_schema(schema_name: str) -> Any:
+        """Read data from the table and apply the timestamp filter.
+
+        Parameters:
+            schema_name (str): name of the schema in SQLite database.
+
+        Returns:
+            pd.Series: results of the query or an empty pd.Series if none are found.
+        """
         with db as con:
             schema = db.metadata.tables[schema_name]
-            metadata_table = db.metadata.tables["__timeseries_metadata__"]
-            data = select(schema)
+            data_query = select(schema)
+
+            if timestamp_start or timestamp_stop:
+                if timestamp_start:
+                    data_query = data_query.where(schema.c.timestamp >= timestamp_start)
+                if timestamp_stop:
+                    data_query = data_query.where(schema.c.timestamp <= timestamp_stop)
 
             ts = pd.read_sql(
-                data,
+                data_query,
                 con=con,
                 parse_dates={"timestamp": "%Y-%m-%dT%H:%M:%S%z"},
                 index_col="timestamp",
@@ -122,53 +135,56 @@ def read_from_sql(
 
         if ts.empty:
             message = f"No data found in table {schema_name}"
-            raise ValueError(message)
+            logger.warning(message)
 
-        # Retrieve metadata associated with this timeseries
-        metadata_query = select(metadata_table).where(
-            metadata_table.c.table_name == schema_name
-        )
-        metadata_result = con.execute(metadata_query).fetchone()
+        return ts
 
-        if not metadata_result:
-            message = f"No metadata found for table {schema_name}"
-            raise ValueError(message)
+    def _create_object(data: pd.Series, metadata: dict) -> Any:
+        """Create the appropriate object for timeseries."""
 
-        # Core metadata extraction
         core_metadata = {
-            "location": metadata_result[2],
-            "variable": metadata_result[3],
-            "unit": metadata_result[4],
+            "location": metadata["location"],
+            "variable": metadata["variable"],
+            "unit": metadata["unit"],
         }
 
-        extra_metadata = metadata_result[7] or {}
-        cls = metadata_result[8]
+        extra_metadata = metadata.get("extra", {})
 
-        metadata = {**core_metadata, **extra_metadata}
+        ts_metadata = {**core_metadata, **extra_metadata}
 
+        cls = metadata["cls"]
         module_name, class_name = cls.rsplit(".", 1)
         module = import_module(module_name)
 
         TimeseriesClass = getattr(module, class_name)
-        ts_object = TimeseriesClass(ts=ts, **metadata)
+        ts_object = TimeseriesClass(ts=data, **ts_metadata)
 
         return ts_object
 
-    # fmt: off
-    if load_all:
-        schemas = db.all_tables
-    else:
-        schemas = db.get_timeseries_metadata(location=location, variable=variable, unit=unit, **kwargs)["table_name"].to_list()
+    metadata_df = (
+        db.get_timeseries_metadata(
+            location=location, variable=variable, unit=unit, **kwargs
+        )
+        if not load_all
+        else db.get_timeseries_metadata()
+    )
 
-    if schemas:
-        timeseries = [_read_from_sql(ts_name)
-                        for ts_name in schemas]
+    if metadata_df.empty:
+        message = "No schemas matched the specified filters."
+        raise ValueError(message)
 
-        return Dataset(timeseries=[ts for ts in timeseries if ts is not None])
-    else:
-        return Dataset()
+    timeseries_list = []
 
-# fmt: on
+    for row in metadata_df.to_dict(orient="records"):
+        try:
+            schema_name = row.pop("table_name")
+            data = _read_data_from_schema(schema_name)
+            timeseries_obj = _create_object(data, row)
+            timeseries_list.append(timeseries_obj)
+        except (ValueError, TypeError):
+            logger.exception(f"Skipping schema {schema_name} due to error.")
+
+    return Dataset(timeseries=timeseries_list) if timeseries_list else Dataset()
 
 
 def read_from_api() -> Dataset:

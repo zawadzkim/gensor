@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any, Literal, TypeVar
-import hashlib
 
 import pandas as pd
 import pandera as pa
@@ -290,8 +290,6 @@ class BaseTimeseries(pyd.BaseModel):
         timestamp_start_fmt = self.start.strftime("%Y%m%d%H%M%S")
         timestamp_end_fmt = self.end.strftime("%Y%m%d%H%M%S")
 
-        schema_name = f"{self.location}_{self.variable}_{self.unit}".lower()
-
         # Ensure the index is a pandas DatetimeIndex
         if isinstance(self.ts.index, pd.DatetimeIndex):
             utc_index = (
@@ -313,23 +311,30 @@ class BaseTimeseries(pyd.BaseModel):
         metadata_entry = {
             **core_metadata,
             "extra": extra_metadata,
-            "table_name": schema_name,
         }
 
-        unique_hash = hashlib.sha1(schema_name.encode("utf-8")).hexdigest()[:5]
-        
         created_table = db.get_timeseries_metadata(
             location=self.location,
             variable=self.variable,
             unit=self.unit,
-            **extra_metadata
+            **extra_metadata,
         )
 
-        
-        
         with db as con:
-            schema = db.create_table(schema_name, self.variable)
+            if created_table.empty:
+                schema_name = f"{self.location}_{self.variable}_{self.unit}".lower()
+                unique_hash = str(uuid.uuid4())[:5]
+                schema_name = schema_name + f"_{unique_hash}"
+
+                # Newly created data schema
+                schema = db.create_table(schema_name, self.variable)
+            else:
+                # Existing data schema
+                schema_name = created_table["table_name"].iloc[0]
+                schema = db.metadata.tables[schema_name]
+
             metadata_schema = db.metadata.tables["__timeseries_metadata__"]
+            metadata_entry.update({"table_name": schema_name})
 
             if isinstance(schema, Table):
                 stmt = sqlite_insert(schema).values(series_as_records)
