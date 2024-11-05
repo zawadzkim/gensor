@@ -186,9 +186,10 @@ def pb01a_timeseries() -> Timeseries:
         path=pb01a, file_format="vanessen", location="PB01A", sensor="AV319"
     )
 
-    pb01a[0].sensor_alt = 31.48
+    pb01a_press = pb01a[0]
+    pb01a_press.sensor_alt = 31.48
 
-    return pb01a
+    return pb01a_press
 
 
 @pytest.fixture
