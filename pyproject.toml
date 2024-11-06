@@ -112,6 +112,7 @@ ignore = [
 
 [tool.ruff.format]
 preview = true
+line-ending = "lf"
 
 [tool.coverage.report]
 skip_empty = true
