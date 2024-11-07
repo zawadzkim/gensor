@@ -5452,7 +5452,7 @@ timeseries.</p>
             <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;No data found in table </span><span class="si">{</span><span class="n">schema_name</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">ts</span>
+        <span class="k">return</span> <span class="n">ts</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_create_object</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create the appropriate object for timeseries.&quot;&quot;&quot;</span>
@@ -13860,7 +13860,7 @@ timeseries.</p>
             <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;No data found in table </span><span class="si">{</span><span class="n">schema_name</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">ts</span>
+        <span class="k">return</span> <span class="n">ts</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_create_object</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create the appropriate object for timeseries.&quot;&quot;&quot;</span>
