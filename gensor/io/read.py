@@ -137,7 +137,7 @@ def read_from_sql(
             message = f"No data found in table {schema_name}"
             logger.warning(message)
 
-        return ts
+        return ts.sort_index()
 
     def _create_object(data: pd.Series, metadata: dict) -> Any:
         """Create the appropriate object for timeseries."""

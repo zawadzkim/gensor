@@ -1,5 +1,8 @@
 # Contributing to `gensor`
 
+!!! note
+Still working on this!
+
 Contributions are welcome, and they are greatly appreciated!
 Every little bit helps, and credit will always be given.
 
@@ -51,21 +54,17 @@ Please note this documentation assumes you already have `poetry` and `Git` insta
 
 2. Clone your fork locally:
 
+Practically all development of this package is done on Linux. To avoid issues with line endings, it is recommended that you use devcontainers. If you work on Windows, please set the core.autocrlf=false key when cloning the repo and then reopen in devcontainer with VS Code Devcontainers extension: `git clone -c core.autocrlf=false`
+
 ```bash
 cd <directory_in_which_repo_should_be_created>
-git clone git@github.com:YOUR_NAME/gensor.git
+git clone -c core.autocrlf=false https://github.com/zawadzkim/gensor.git
 ```
 
 3. Now we need to install the environment. Navigate into the directory
 
 ```bash
 cd gensor
-```
-
-If you are using `pyenv`, select a version to use locally. (See installed versions with `pyenv versions`)
-
-```bash
-pyenv local <x.y.z>
 ```
 
 Then, install and activate the environment with:
@@ -101,13 +100,6 @@ Now, validate that all unit tests are passing:
 
 ```bash
 make test
-```
-
-9. Before raising a pull request you should also run tox.
-   This will run the tests across different versions of Python:
-
-```bash
-tox
 ```
 
 This requires you to have multiple versions of python installed.
