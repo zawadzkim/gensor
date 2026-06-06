@@ -107,5 +107,54 @@ def test_filter_with_attribute_as_list(synthetic_dataset):
     assert "Sensor 3" in sensors_in_result
 
 
+def test_getitem_by_index_still_returns_timeseries(synthetic_dataset):
+    """Integer indexing keeps working and returns a Timeseries reference."""
+    assert isinstance(synthetic_dataset[0], Timeseries)
+
+
+def test_getitem_by_location_single(synthetic_dataset):
+    """A location with one matching timeseries returns a Timeseries."""
+    ts = synthetic_dataset["Station A"]
+    assert isinstance(ts, Timeseries)
+    assert ts.location == "Station A"
+
+
+def test_getitem_by_location_multiple(synthetic_dataset):
+    """A location with several timeseries returns a Dataset of them."""
+    synthetic_dataset.add(
+        synthetic_dataset[0].model_copy(
+            update={"variable": "temperature", "unit": "degc"}
+        )
+    )
+    result = synthetic_dataset["Station A"]
+    assert isinstance(result, Dataset)
+    assert len(result) == 2
+    assert {ts.variable for ts in result} == {"pressure", "temperature"}
+
+
+def test_getitem_by_location_missing_raises_keyerror(synthetic_dataset):
+    """Indexing an unknown location raises KeyError (dict-like)."""
+    with pytest.raises(KeyError):
+        synthetic_dataset["Non-existent Station"]
+
+
+def test_getitem_by_location_list(synthetic_dataset):
+    """A list of locations returns a Dataset with the matching timeseries."""
+    result = synthetic_dataset[["Station A", "Station B"]]
+    assert isinstance(result, Dataset)
+    assert len(result) == 2
+
+
+def test_get_locations_is_unique(synthetic_dataset):
+    """get_locations() de-duplicates (one entry per location, as documented)."""
+    synthetic_dataset.add(
+        synthetic_dataset[0].model_copy(
+            update={"variable": "temperature", "unit": "degc"}
+        )
+    )
+    locations = synthetic_dataset.get_locations()
+    assert sorted(locations) == ["Station A", "Station B"]
+
+
 if __name__ == "__main__":
     pytest.main()

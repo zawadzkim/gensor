@@ -37,7 +37,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
     """
 
     patterns = {
-        "sensor": kwargs.get("serial_number_pattern", r"[A-Za-z]{2}\d{3,4}"),
+        "sensor": kwargs.get("serial_number_pattern", r"[A-Za-z]{1,2}\d{3,4}"),
         "location": kwargs.get(
             "location_pattern", r"[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver"
         ),
@@ -53,8 +53,18 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
 
         metadata = get_metadata(text, patterns)
 
-        if not metadata:
-            logger.info(f"Skipping file {path} due to missing metadata.")
+        # Explicit location/sensor kwargs take precedence over the regex-extracted
+        # values, so files whose serial/location format the patterns don't recognise
+        # can still be read by passing location=/sensor= directly.
+        location = kwargs.get("location") or metadata.get("location")
+        sensor = kwargs.get("sensor") or metadata.get("sensor")
+        timezone = metadata.get("timezone") or "UTC"
+
+        if location is None or sensor is None:
+            logger.info(
+                f"Skipping file {path} due to missing metadata "
+                "(pass location=/sensor= to override)."
+            )
             return []
 
         data_start = "Date/time"
@@ -62,7 +72,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
 
         df = get_data(text, data_start, data_end, column_names)
 
-        df = handle_timestamps(df, metadata.get("timezone", "UTC"))
+        df = handle_timestamps(df, timezone)
 
         ts_list = []
 
@@ -74,15 +84,15 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
                         ts=df[col],
                         # Validation will be done in Pydantic
                         variable=col,  # type: ignore[arg-type]
-                        location=metadata.get("location"),
-                        sensor=metadata.get("sensor"),
+                        location=location,
+                        sensor=sensor,
                         # Validation will be done in Pydantic
                         unit=unit,  # type: ignore[arg-type]
                     )
                 )
             else:
                 message = (
-                    "Unsupported variable: {col}. Please provide a valid variable type."
+                    f"Unsupported variable: {col}. Please provide a valid variable type."
                 )
                 raise ValueError(message)
 

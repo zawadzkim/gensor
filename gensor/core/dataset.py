@@ -33,30 +33,48 @@ class Dataset(pyd.BaseModel, Generic[T]):
     def __repr__(self) -> str:
         return f"Dataset({len(self)})"
 
-    def __getitem__(self, index: int) -> T | None:
-        """Retrieve a Timeseries object by its index in the dataset.
+    def __getitem__(self, key: int | str | list) -> T | None | Dataset:
+        """Retrieve Timeseries by integer index or by location name.
+
+        - ``dataset[0]`` returns the Timeseries at that position (a reference).
+        - ``dataset["PB01A"]`` returns the Timeseries at that location, or a
+          Dataset if the location has several timeseries (e.g. pressure and
+          temperature). A list of names (``dataset[["PB01A", "PB02A"]]``) always
+          returns a Dataset.
 
         !!! warning
-            Using index will return the reference to the timeseries. If you need a copy,
-            use .filter() instead of Dataset[index]
+            Integer indexing returns a reference to the timeseries. Location
+            indexing returns copies (it delegates to ``.filter()``).
 
         Parameters:
-            index (int): The index of the Timeseries to retrieve.
+            key (int | str | list): Position, location name, or list of names.
 
         Returns:
-            Timeseries: The Timeseries object at the specified index.
+            Timeseries | Dataset: The matching timeseries or a dataset of them.
 
         Raises:
-            IndexError: If the index is out of range.
+            IndexOutOfRangeError: If an integer index is out of range.
+            KeyError: If no timeseries matches the given location(s).
         """
+        if isinstance(key, (str, list)):
+            result = self.filter(location=key)
+            if isinstance(result, Dataset) and len(result) == 0:
+                message = f"No timeseries found for location(s) {key!r}."
+                raise KeyError(message)
+            return result
+
         try:
-            return self.timeseries[index]
+            return self.timeseries[key]
         except IndexError:
-            raise IndexOutOfRangeError(index, len(self)) from None
+            raise IndexOutOfRangeError(key, len(self)) from None
 
     def get_locations(self) -> list:
-        """List all unique locations in the dataset."""
-        return [ts.location for ts in self.timeseries if ts is not None]
+        """List all unique locations in the dataset, preserving first-seen order."""
+        locations: list = []
+        for ts in self.timeseries:
+            if ts is not None and ts.location not in locations:
+                locations.append(ts.location)
+        return locations
 
     def add(self, other: T | list[T] | Dataset) -> Dataset:
         """Appends new Timeseries to the Dataset.
