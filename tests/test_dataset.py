@@ -1,7 +1,9 @@
+import pandas as pd
 import pytest
 
 from gensor.core.dataset import Dataset
 from gensor.core.timeseries import Timeseries
+from gensor.io.read import read_from_sql
 
 
 def test_add_timeseries_to_dataset(pb01a_timeseries, baro_timeseries):
@@ -145,6 +147,37 @@ def test_getitem_by_location_list(synthetic_dataset):
     assert len(result) == 2
 
 
+def test_contains_location(synthetic_dataset):
+    """`location in dataset` checks membership by location name."""
+    assert "Station A" in synthetic_dataset
+    assert "Station B" in synthetic_dataset
+    assert "Non-existent Station" not in synthetic_dataset
+
+
+def test_one_returns_single_timeseries(synthetic_dataset):
+    """one() returns a single Timeseries when exactly one matches."""
+    ts = synthetic_dataset.one(location="Station A")
+    assert isinstance(ts, Timeseries)
+    assert ts.location == "Station A"
+
+
+def test_one_raises_when_multiple_match(synthetic_dataset):
+    """one() raises when more than one timeseries matches."""
+    synthetic_dataset.add(
+        synthetic_dataset[0].model_copy(
+            update={"variable": "temperature", "unit": "degc"}
+        )
+    )
+    with pytest.raises(ValueError):
+        synthetic_dataset.one(location="Station A")
+
+
+def test_one_raises_when_no_match(synthetic_dataset):
+    """one() raises when nothing matches."""
+    with pytest.raises(ValueError):
+        synthetic_dataset.one(location="Non-existent Station")
+
+
 def test_get_locations_is_unique(synthetic_dataset):
     """get_locations() de-duplicates (one entry per location, as documented)."""
     synthetic_dataset.add(
@@ -154,6 +187,47 @@ def test_get_locations_is_unique(synthetic_dataset):
     )
     locations = synthetic_dataset.get_locations()
     assert sorted(locations) == ["Station A", "Station B"]
+
+
+def test_to_sql_handles_large_series(db):
+    """to_sql() must persist series larger than SQLite's bound-variable limit."""
+    n = 300_000  # exceeds SQLite's bound-variable limit for a single multi-row INSERT
+    idx = pd.date_range("2020-01-01", periods=n, freq="s", tz="UTC")
+    big = Timeseries(
+        ts=pd.Series(range(n), index=idx, dtype=float),
+        variable="pressure",
+        unit="cmh2o",
+        location="BigStation",
+        sensor="S1",
+    )
+
+    Dataset(timeseries=[big]).to_sql(db)  # must not raise "too many SQL variables"
+
+    reloaded = read_from_sql(db, load_all=True)
+    ts = reloaded if isinstance(reloaded, Timeseries) else reloaded[0]
+    assert len(ts.ts) == n
+
+
+def test_to_sql_skips_empty_timeseries(db, synthetic_submerged_timeseries):
+    """to_sql() must not crash on empty timeseries (their start/end are NaT)."""
+    empty = synthetic_submerged_timeseries.model_copy(
+        update={
+            "ts": pd.Series([], index=pd.DatetimeIndex([], tz="UTC"), dtype=float),
+            "location": "EmptyLoc",
+        }
+    )
+    ds = Dataset(timeseries=[synthetic_submerged_timeseries, empty])
+
+    ds.to_sql(db)  # should skip the empty one rather than raise on NaT.strftime
+
+    reloaded = read_from_sql(db, load_all=True)
+    locations = (
+        reloaded.get_locations()
+        if isinstance(reloaded, Dataset)
+        else [reloaded.location]
+    )
+    assert "Station A" in locations
+    assert "EmptyLoc" not in locations
 
 
 if __name__ == "__main__":

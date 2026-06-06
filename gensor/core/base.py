@@ -304,9 +304,18 @@ class BaseTimeseries(pyd.BaseModel):
             message = "The index is not a DatetimeIndex and cannot be converted to UTC."
             raise TypeError(message)
 
-        series_as_records = list(
-            zip(utc_index.strftime("%Y-%m-%dT%H:%M:%S%z"), self.ts, strict=False)
-        )
+        # Records as dicts keyed by column name so the insert can run as an
+        # executemany (one row per parameter set) instead of a single multi-row
+        # VALUES clause - the latter blows SQLite's bound-variable limit for long
+        # series. ``tolist()`` also yields native Python floats/strings.
+        series_as_records = [
+            {"timestamp": timestamp, self.variable: value}
+            for timestamp, value in zip(
+                utc_index.strftime("%Y-%m-%dT%H:%M:%S%z").tolist(),
+                self.ts.tolist(),
+                strict=False,
+            )
+        ]
 
         # Extra metadata are attributes additional to BaseTimeseries
         core_metadata, extra_metadata = separate_metadata()
@@ -340,9 +349,11 @@ class BaseTimeseries(pyd.BaseModel):
             metadata_entry.update({"table_name": schema_name})
 
             if isinstance(schema, Table):
-                stmt = sqlite_insert(schema).values(series_as_records)
-                stmt = stmt.on_conflict_do_nothing(index_elements=["timestamp"])
-                con.execute(stmt)
+                if series_as_records:
+                    stmt = sqlite_insert(schema).on_conflict_do_nothing(
+                        index_elements=["timestamp"]
+                    )
+                    con.execute(stmt, series_as_records)
 
                 metadata_stmt = sqlite_insert(metadata_schema).values(metadata_entry)
                 metadata_stmt = metadata_stmt.on_conflict_do_update(

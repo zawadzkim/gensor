@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import Any, Generic
 
@@ -11,6 +12,8 @@ from matplotlib.figure import Figure
 from gensor.core.base import BaseTimeseries, T
 from gensor.db import DatabaseConnection
 from gensor.exceptions import IndexOutOfRangeError
+
+logger = logging.getLogger(__name__)
 
 
 class Dataset(pyd.BaseModel, Generic[T]):
@@ -68,6 +71,12 @@ class Dataset(pyd.BaseModel, Generic[T]):
         except IndexError:
             raise IndexOutOfRangeError(key, len(self)) from None
 
+    def __contains__(self, location: object) -> bool:
+        """Return True if any timeseries in the dataset has the given location."""
+        return any(
+            ts is not None and ts.location == location for ts in self.timeseries
+        )
+
     def get_locations(self) -> list:
         """List all unique locations in the dataset, preserving first-seen order."""
         locations: list = []
@@ -75,6 +84,32 @@ class Dataset(pyd.BaseModel, Generic[T]):
             if ts is not None and ts.location not in locations:
                 locations.append(ts.location)
         return locations
+
+    def one(self, **filters: Any) -> T:
+        """Return exactly one matching Timeseries.
+
+        A convenience over :meth:`filter` for when a single result is expected:
+        it always returns a Timeseries (never a Dataset) and raises if zero or
+        more than one timeseries match - avoiding the "is it a Timeseries or a
+        Dataset?" ambiguity of :meth:`filter` / ``dataset[name]``.
+
+        Parameters:
+            **filters: Same keyword filters as :meth:`filter` (location,
+                variable, unit, sensor, ...).
+
+        Returns:
+            Timeseries: The single matching timeseries.
+
+        Raises:
+            ValueError: If zero or more than one timeseries match the filters.
+        """
+        result = self.filter(**filters)
+        if isinstance(result, BaseTimeseries):
+            return result
+
+        count = len(result)
+        message = f"Expected exactly one timeseries matching {filters}, found {count}."
+        raise ValueError(message)
 
     def add(self, other: T | list[T] | Dataset) -> Dataset:
         """Appends new Timeseries to the Dataset.
@@ -173,8 +208,15 @@ class Dataset(pyd.BaseModel, Generic[T]):
             db (DatabaseConnection): SQLite database connection object.
         """
         for ts in self.timeseries:
-            if ts:
-                ts.to_sql(db)
+            if ts is None:
+                continue
+            if len(ts.ts) == 0:
+                logger.info(
+                    f"Skipping empty timeseries (location={ts.location!r}) - "
+                    "nothing to write to the database."
+                )
+                continue
+            ts.to_sql(db)
         return
 
     def plot(
