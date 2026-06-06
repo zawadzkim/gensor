@@ -134,6 +134,32 @@ def test_getitem_by_location_multiple(synthetic_dataset):
     assert {ts.variable for ts in result} == {"pressure", "temperature"}
 
 
+def test_getitem_by_location_and_variable_tuple(synthetic_dataset):
+    """(location, variable) tuple indexing narrows to a single Timeseries."""
+    synthetic_dataset.add(
+        synthetic_dataset[0].model_copy(
+            update={"variable": "temperature", "unit": "degc"}
+        )
+    )
+    ts = synthetic_dataset["Station A", "pressure"]
+    assert isinstance(ts, Timeseries)
+    assert ts.location == "Station A"
+    assert ts.variable == "pressure"
+
+
+def test_getitem_tuple_with_unit(synthetic_dataset):
+    """(location, variable, unit) tuple is supported too."""
+    ts = synthetic_dataset["Station A", "pressure", "cmh2o"]
+    assert isinstance(ts, Timeseries)
+    assert ts.unit == "cmh2o"
+
+
+def test_getitem_tuple_missing_raises_keyerror(synthetic_dataset):
+    """A tuple with no match raises KeyError."""
+    with pytest.raises(KeyError):
+        synthetic_dataset["Station A", "conductivity"]
+
+
 def test_getitem_by_location_missing_raises_keyerror(synthetic_dataset):
     """Indexing an unknown location raises KeyError (dict-like)."""
     with pytest.raises(KeyError):

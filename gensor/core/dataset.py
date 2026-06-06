@@ -36,29 +36,42 @@ class Dataset(pyd.BaseModel, Generic[T]):
     def __repr__(self) -> str:
         return f"Dataset({len(self)})"
 
-    def __getitem__(self, key: int | str | list) -> T | None | Dataset:
-        """Retrieve Timeseries by integer index or by location name.
+    def __getitem__(self, key: int | str | list | tuple) -> T | None | Dataset:
+        """Retrieve Timeseries by integer index, location name, or (location,
+        variable[, unit]) tuple.
 
         - ``dataset[0]`` returns the Timeseries at that position (a reference).
         - ``dataset["PB01A"]`` returns the Timeseries at that location, or a
           Dataset if the location has several timeseries (e.g. pressure and
           temperature). A list of names (``dataset[["PB01A", "PB02A"]]``) always
           returns a Dataset.
+        - ``dataset["PB01A", "pressure"]`` (or ``["PB01A", "pressure", "cmh2o"]``)
+          narrows by variable/unit, returning a single Timeseries when one matches.
+          For full control use :meth:`filter` / :meth:`one`.
 
         !!! warning
-            Integer indexing returns a reference to the timeseries. Location
-            indexing returns copies (it delegates to ``.filter()``).
+            Integer indexing returns a reference to the timeseries. Location /
+            tuple indexing returns copies (it delegates to ``.filter()``).
 
         Parameters:
-            key (int | str | list): Position, location name, or list of names.
+            key (int | str | list | tuple): Position, location name, list of
+                names, or a (location, variable[, unit]) tuple.
 
         Returns:
             Timeseries | Dataset: The matching timeseries or a dataset of them.
 
         Raises:
             IndexOutOfRangeError: If an integer index is out of range.
-            KeyError: If no timeseries matches the given location(s).
+            KeyError: If no timeseries matches the given location(s)/filters.
         """
+        if isinstance(key, tuple):
+            location, variable, unit = (*key, None, None)[:3]
+            result = self.filter(location=location, variable=variable, unit=unit)
+            if isinstance(result, Dataset) and len(result) == 0:
+                message = f"No timeseries found for {key!r}."
+                raise KeyError(message)
+            return result
+
         if isinstance(key, (str, list)):
             result = self.filter(location=key)
             if isinstance(result, Dataset) and len(result) == 0:
