@@ -78,6 +78,37 @@ def get_metadata(text: str, patterns: dict) -> dict:
     return metadata
 
 
+def get_header_fields(text: str) -> dict:
+    """Parse the ``key = value`` lines of a Diver-Office header into a dict.
+
+    Diver-Office files carry labelled fields in the header (e.g. ``Location`` and
+    ``Serial number``); reading those directly is far more reliable than matching a
+    regex against the whole file, which can pick up stray matches from the embedded
+    ``FILENAME`` path. Parsing stops at the data block, section markers
+    (``[Logger settings]`` ...) and lines without a ``key = value`` shape are
+    skipped, and the first occurrence of each key wins.
+
+    Parameters:
+        text (str): string obtained from the CSV file.
+
+    Returns:
+        dict: header field name -> value (both stripped).
+    """
+    fields: dict[str, str] = {}
+
+    for line in text.splitlines():
+        if "Date/time" in line:  # start of the data block
+            break
+        if not line.strip() or line.lstrip().startswith("["):
+            continue
+        key, sep, value = line.partition("=")
+        key = key.strip()
+        if sep and key and key not in fields:
+            fields[key] = value.strip()
+
+    return fields
+
+
 def detect_encoding(path: Path, num_bytes: int = 1024) -> str:
     """Detect the encoding of a file using chardet.
 

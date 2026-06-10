@@ -53,22 +53,33 @@ def test_vanessen_explicit_location_sensor_override():
     assert ts.sensor == "XYZ001"
 
 
-def test_vanessen_explicit_metadata_when_regex_fails(tmp_path):
-    """When the header has no regex-matchable location/sensor, explicit kwargs let it parse."""
+def test_vanessen_uses_labelled_field_when_regex_fails(tmp_path):
+    """A location/serial that doesn't match the regex is taken verbatim from the
+    labelled header field ('Location' / 'Serial number') - no override needed."""
     text, enc = _read_text(pb01a)
     masked = text.replace("PB01A_moni_AV319", "neerijse").replace("AV319", "K5171")
     f = tmp_path / "neerijse.CSV"
     f.write_text(masked, encoding=enc)
 
-    # Without overrides the location/sensor cannot be determined -> file skipped.
-    assert len(read_from_csv(f, file_format="vanessen")) == 0
-
-    # With explicit overrides the file parses.
-    ts = _as_timeseries(
-        read_from_csv(f, file_format="vanessen", location="neerijse", sensor="K5171")
-    )
+    ts = _as_timeseries(read_from_csv(f, file_format="vanessen"))
     assert ts.location == "neerijse"
     assert ts.sensor == "K5171"
+
+
+def test_vanessen_skipped_when_field_missing_then_override(tmp_path):
+    """When the labelled 'Location' field is absent the file is skipped, but an
+    explicit location= override still lets it parse."""
+    text, enc = _read_text(pb01a)
+    masked = "\n".join(ln for ln in text.splitlines() if "Location" not in ln) + "\n"
+    f = tmp_path / "no_location.CSV"
+    f.write_text(masked, encoding=enc)
+
+    # No 'Location' field and the name isn't regex-matchable -> skipped.
+    assert len(read_from_csv(f, file_format="vanessen")) == 0
+
+    # Explicit override supplies the missing location.
+    ts = _as_timeseries(read_from_csv(f, file_format="vanessen", location="neerijse"))
+    assert ts.location == "neerijse"
 
 
 def test_vanessen_semicolon_delimited(tmp_path):
