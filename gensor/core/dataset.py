@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Generic
 
+import pandas as pd
 import pydantic as pyd
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -97,6 +98,19 @@ class Dataset(pyd.BaseModel, Generic[T]):
             if ts is not None and ts.location not in locations:
                 locations.append(ts.location)
         return locations
+
+    @property
+    def coverage(self) -> Coverage:
+        """Coverage summary of the dataset.
+
+        Renders as a per-timeseries table (records and time span per location /
+        variable / sensor) and exposes :meth:`Coverage.plot` for a coverage timeline.
+
+        Examples:
+            >>> ds.coverage          # the table  # doctest: +SKIP
+            >>> ds.coverage.plot()   # the timeline  # doctest: +SKIP
+        """
+        return Coverage(self)
 
     def one(self, **filters: Any) -> T:
         """Return exactly one matching Timeseries.
@@ -296,3 +310,104 @@ class Dataset(pyd.BaseModel, Generic[T]):
 
         fig.tight_layout()
         return fig, axes
+
+
+class Coverage:
+    """Coverage summary of a :class:`Dataset`, returned by ``Dataset.coverage``.
+
+    Holds a per-timeseries ``table`` (one row per location / variable / sensor with
+    its record count and time span) and renders as that table in a notebook. Call
+    :meth:`plot` for a coverage timeline (one row per location; bars span contiguous
+    data, breaks mark gaps longer than ``max_gap``).
+    """
+
+    columns = ["location", "variable", "sensor", "unit", "records", "start", "end", "duration"]
+
+    def __init__(self, dataset: Dataset) -> None:
+        self._dataset = dataset
+        table = pd.DataFrame(
+            [
+                {
+                    "location": ts.location,
+                    "variable": ts.variable,
+                    "sensor": getattr(ts, "sensor", None),
+                    "unit": ts.unit,
+                    "records": len(ts.ts),
+                    "start": ts.ts.index.min(),
+                    "end": ts.ts.index.max(),
+                    "duration": ts.ts.index.max() - ts.ts.index.min(),
+                }
+                for ts in dataset
+                if ts is not None and len(ts.ts) > 0
+            ],
+            columns=self.columns,
+        )
+        if not table.empty:
+            table = table.sort_values(["location", "variable"]).reset_index(drop=True)
+        self.table = table
+
+    def __repr__(self) -> str:
+        return self.table.to_string(index=False)
+
+    def _repr_html_(self) -> str:
+        return self.table.to_html(index=False)
+
+    def plot(
+        self,
+        max_gap: str = "7D",
+        ax: Axes | None = None,
+        color: str = "#1f4e79",
+    ) -> tuple[Figure, Axes]:
+        """Plot a coverage timeline: one row per location, with bars spanning
+        contiguous data and breaks wherever the gap between consecutive samples
+        exceeds ``max_gap``.
+
+        Parameters:
+            max_gap (str): pandas timedelta string; a gap longer than this splits a
+                bar so within-record holes (e.g. a missing season) stay visible.
+            ax (Axes | None): existing axes to draw on; a new figure is created if None.
+            color (str): bar colour.
+
+        Returns:
+            (fig, ax): Matplotlib figure and axes.
+        """
+        from matplotlib.dates import date2num
+
+        threshold = pd.Timedelta(max_gap)
+        locations = self._dataset.get_locations()
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 0.35 * len(locations) + 1))
+        else:
+            fig = ax.figure
+
+        for row, location in enumerate(locations):
+            index = None
+            for ts in self._dataset:
+                if ts is None or ts.location != location or len(ts.ts) == 0:
+                    continue
+                index = ts.ts.index if index is None else index.union(ts.ts.index)
+            if index is None or len(index) == 0:
+                continue
+            index = index.sort_values()
+
+            # split into contiguous segments wherever a gap exceeds the threshold
+            bars = []
+            seg_start = previous = index[0]
+            for stamp in index[1:]:
+                if stamp - previous > threshold:
+                    bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
+                    seg_start = stamp
+                previous = stamp
+            bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
+
+            ax.broken_barh(bars, (row - 0.4, 0.8), facecolors=color)
+
+        ax.set_yticks(range(len(locations)))
+        ax.set_yticklabels(locations, fontsize=8)
+        ax.invert_yaxis()
+        ax.xaxis_date()
+        ax.set_title("Data coverage")
+        ax.grid(axis="x", alpha=0.3)
+        fig.tight_layout()
+        return fig, ax

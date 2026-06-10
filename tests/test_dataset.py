@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from gensor.core.dataset import Dataset
+from gensor.core.dataset import Coverage, Dataset
 from gensor.core.timeseries import Timeseries
 from gensor.io.read import read_from_sql
 
@@ -282,6 +282,27 @@ def test_to_sql_skips_empty_timeseries(db, synthetic_submerged_timeseries):
     )
     assert "Station A" in locations
     assert "EmptyLoc" not in locations
+
+
+def test_coverage_table(synthetic_dataset):
+    """Dataset.coverage exposes a per-timeseries table."""
+    coverage = synthetic_dataset.coverage
+    assert isinstance(coverage, Coverage)
+    assert list(coverage.table.columns) == Coverage.columns
+    assert len(coverage.table) == len(synthetic_dataset)
+    assert set(coverage.table["location"]) == {"Station A", "Station B"}
+    assert (coverage.table["records"] > 0).all()
+
+
+def test_coverage_plot_returns_fig_ax(synthetic_dataset):
+    """Dataset.coverage.plot() returns a (fig, ax) with one row per location."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    fig, ax = synthetic_dataset.coverage.plot()
+    assert fig is not None
+    assert len(ax.get_yticks()) == len(synthetic_dataset.get_locations())
+    matplotlib.pyplot.close(fig)
 
 
 if __name__ == "__main__":
