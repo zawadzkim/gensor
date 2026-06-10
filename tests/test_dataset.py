@@ -109,6 +109,34 @@ def test_filter_with_attribute_as_list(synthetic_dataset):
     assert "Sensor 3" in sensors_in_result
 
 
+def test_filter_exclude_single_location(synthetic_dataset):
+    """exclude= drops timeseries matching the given attribute."""
+    result = synthetic_dataset.filter(exclude={"location": "Station A"})
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station B"
+
+
+def test_filter_exclude_location_list(synthetic_dataset):
+    """exclude= accepts a list (drop any location in the list)."""
+    result = synthetic_dataset.filter(exclude={"location": ["Station A", "Station B"]})
+    assert isinstance(result, Dataset)
+    assert len(result) == 0
+
+
+def test_filter_exclude_attribute_pair_is_anded(synthetic_dataset):
+    """All conditions in exclude must match (AND): only Station B / Sensor 2 is dropped."""
+    result = synthetic_dataset.filter(exclude={"location": "Station B", "sensor": "Sensor 2"})
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station A"
+
+
+def test_filter_include_and_exclude_combined(synthetic_dataset):
+    """exclude= is applied on top of the include filters."""
+    result = synthetic_dataset.filter(variable="pressure", exclude={"location": "Station A"})
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station B"
+
+
 def test_getitem_by_index_still_returns_timeseries(synthetic_dataset):
     """Integer indexing keeps working and returns a Timeseries reference."""
     assert isinstance(synthetic_dataset[0], Timeseries)

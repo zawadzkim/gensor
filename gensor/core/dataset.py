@@ -162,49 +162,67 @@ class Dataset(pyd.BaseModel, Generic[T]):
         location: str | list | None = None,
         variable: str | list | None = None,
         unit: str | list | None = None,
-        **kwargs: dict[str, str | list],
+        exclude: dict[str, str | list] | None = None,
+        **kwargs: str | list,
     ) -> T | Dataset:
         """Return a Timeseries or a new Dataset filtered by station, sensor,
         and/or variable.
 
+        Any of ``location``/``variable``/``unit`` (and the keyword attributes) may be
+        a single value or a list of values, matching a timeseries when its attribute
+        equals (or is in) the given value(s).
+
+        To filter by the *opposite* - dropping timeseries rather than selecting them -
+        pass ``exclude``, a dict of ``{attribute: value | list}``. A timeseries is
+        removed when it matches **all** conditions in ``exclude`` (e.g.
+        ``exclude={"location": "PB16D"}`` drops that location, while
+        ``exclude={"location": "PB03B", "sensor": "AV319"}`` drops only that one
+        sensor at that location). ``exclude`` is applied after the include filters.
+
         Parameters:
-            location (Optional[str]): The location name.
-            variable (Optional[str]): The variable being measured.
-            unit (Optional[str]): Unit of the measurement.
-            **kwargs (dict): Attributes of subclassed timeseries used for filtering
-                (e.g., sensor, method).
+            location (str | list, optional): The location name(s).
+            variable (str | list, optional): The variable(s) being measured.
+            unit (str | list, optional): Unit(s) of the measurement.
+            exclude (dict, optional): ``{attribute: value | list}`` conditions whose
+                (combined) match removes a timeseries from the result.
+            **kwargs (str | list): Attributes of subclassed timeseries used for
+                filtering (e.g., sensor, method).
 
         Returns:
             Timeseries | Dataset: A single Timeseries if exactly one match is found,
                                    or a new Dataset if multiple matches are found.
         """
 
-        def matches(ts: T, attr: str, value: dict[str, str | list]) -> bool | None:
-            """Check if the Timeseries object has the attribute and if it matches the value."""
+        def as_list(value: str | list | None) -> list | None:
+            return [value] if isinstance(value, str) else value
+
+        def matches(ts: T, attr: str, value: list) -> bool:
+            """Check the Timeseries has the attribute and its value is in ``value``."""
             if not hasattr(ts, attr):
                 message = f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
                 raise AttributeError(message)
             return getattr(ts, attr) in value
 
-        if isinstance(location, str):
-            location = [location]
-        if isinstance(variable, str):
-            variable = [variable]
-        if isinstance(unit, str):
-            unit = [unit]
-        for key, value in kwargs.items():
-            if isinstance(value, str):
-                kwargs[key] = [value]
+        location, variable, unit = as_list(location), as_list(variable), as_list(unit)
+        kwargs = {attr: as_list(value) for attr, value in kwargs.items()}
+        exclude = {attr: as_list(value) for attr, value in (exclude or {}).items()}
 
-        matching_timeseries = [
-            ts
-            for ts in self.timeseries
-            if ts is not None
-            and (location is None or ts.location in location)
-            and (variable is None or ts.variable in variable)
-            and (unit is None or ts.unit in unit)
-            and all(matches(ts, attr, value) for attr, value in kwargs.items())
-        ]
+        def keep(ts: T | None) -> bool:
+            if ts is None:
+                return False
+            if location is not None and ts.location not in location:
+                return False
+            if variable is not None and ts.variable not in variable:
+                return False
+            if unit is not None and ts.unit not in unit:
+                return False
+            if not all(matches(ts, attr, value) for attr, value in kwargs.items()):
+                return False
+            if exclude and all(matches(ts, attr, value) for attr, value in exclude.items()):
+                return False
+            return True
+
+        matching_timeseries = [ts for ts in self.timeseries if keep(ts)]
 
         if not matching_timeseries:
             return Dataset()
