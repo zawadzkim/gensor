@@ -112,6 +112,25 @@ class Dataset(pyd.BaseModel, Generic[T]):
         """
         return Coverage(self)
 
+    def diff(
+        self,
+        *others: Dataset,
+        labels: list[str] | None = None,
+        key: tuple[str, ...] = ("location", "variable"),
+    ) -> CoverageDiff:
+        """Compare this dataset's coverage with one or more others.
+
+        Convenience wrapper over :func:`gensor.diff`. ``labels`` names this dataset
+        and the others (default ``ds0``, ``ds1`` ...).
+
+        Examples:
+            >>> raw.diff(trimmed, labels=["raw", "trimmed"]).plot()  # doctest: +SKIP
+        """
+        datasets = [self, *others]
+        if labels is None:
+            labels = [f"ds{i}" for i in range(len(datasets))]
+        return diff(dict(zip(labels, datasets, strict=True)), key=key)
+
     def one(self, **filters: Any) -> T:
         """Return exactly one matching Timeseries.
 
@@ -312,6 +331,25 @@ class Dataset(pyd.BaseModel, Generic[T]):
         return fig, axes
 
 
+def _coverage_segments(index: pd.DatetimeIndex, threshold: pd.Timedelta) -> list[tuple]:
+    """Split a DatetimeIndex into ``(start, width)`` segments (in Matplotlib date
+    units) of contiguous data, breaking wherever the gap between consecutive samples
+    exceeds ``threshold``. Used to draw coverage bars with within-record gaps shown.
+    """
+    from matplotlib.dates import date2num
+
+    index = index.sort_values()
+    bars: list[tuple] = []
+    seg_start = previous = index[0]
+    for stamp in index[1:]:
+        if stamp - previous > threshold:
+            bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
+            seg_start = stamp
+        previous = stamp
+    bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
+    return bars
+
+
 class Coverage:
     """Coverage summary of a :class:`Dataset`, returned by ``Dataset.coverage``.
 
@@ -371,8 +409,6 @@ class Coverage:
         Returns:
             (fig, ax): Matplotlib figure and axes.
         """
-        from matplotlib.dates import date2num
-
         threshold = pd.Timedelta(max_gap)
         locations = self._dataset.get_locations()
 
@@ -389,19 +425,7 @@ class Coverage:
                 index = ts.ts.index if index is None else index.union(ts.ts.index)
             if index is None or len(index) == 0:
                 continue
-            index = index.sort_values()
-
-            # split into contiguous segments wherever a gap exceeds the threshold
-            bars = []
-            seg_start = previous = index[0]
-            for stamp in index[1:]:
-                if stamp - previous > threshold:
-                    bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
-                    seg_start = stamp
-                previous = stamp
-            bars.append((date2num(seg_start), date2num(previous) - date2num(seg_start)))
-
-            ax.broken_barh(bars, (row - 0.4, 0.8), facecolors=color)
+            ax.broken_barh(_coverage_segments(index, threshold), (row - 0.4, 0.8), facecolors=color)
 
         ax.set_yticks(range(len(locations)))
         ax.set_yticklabels(locations, fontsize=8)
@@ -411,3 +435,181 @@ class Coverage:
         ax.grid(axis="x", alpha=0.3)
         fig.tight_layout()
         return fig, ax
+
+
+class CoverageDiff:
+    """Coverage comparison of two or more datasets, returned by :func:`gensor.diff`
+    (or ``Dataset.diff``).
+
+    Series are aligned across datasets by ``key`` (default ``("location",
+    "variable")``); multiple sensors sharing a key are unioned and the sensor(s)
+    reported. Renders as a wide ``table`` (per-dataset record count / start / end,
+    plus ``present`` and ``status`` summary columns) and exposes :meth:`plot` for an
+    N-way coverage timeline grouped by timeseries.
+    """
+
+    def __init__(
+        self,
+        datasets: dict[str, Dataset],
+        key: tuple[str, ...] = ("location", "variable"),
+    ) -> None:
+        if len(datasets) < 2:
+            message = "CoverageDiff needs at least two datasets to compare."
+            raise ValueError(message)
+
+        self._datasets = dict(datasets)
+        self.key = tuple(key)
+        self.labels = list(datasets)
+
+        # per label: key-tuple -> {sensor, records, start, end, index}
+        self._coverage: dict[str, dict[tuple, dict]] = {}
+        for label, dataset in datasets.items():
+            grouped: dict[tuple, dict] = {}
+            for ts in dataset:
+                if ts is None or len(ts.ts) == 0:
+                    continue
+                k = tuple(getattr(ts, attr) for attr in self.key)
+                entry = grouped.setdefault(k, {"sensors": set(), "index": None})
+                entry["index"] = (
+                    ts.ts.index
+                    if entry["index"] is None
+                    else entry["index"].union(ts.ts.index)
+                )
+                entry["sensors"].add(getattr(ts, "sensor", None))
+            self._coverage[label] = {
+                k: {
+                    "sensor": "+".join(sorted(s for s in v["sensors"] if s)) or None,
+                    "records": len(v["index"]),
+                    "start": v["index"].min(),
+                    "end": v["index"].max(),
+                    "index": v["index"].sort_values(),
+                }
+                for k, v in grouped.items()
+            }
+
+        self.keys = sorted({k for cov in self._coverage.values() for k in cov})
+        self.table = self._build_table()
+
+    def _status(self, k: tuple) -> str:
+        present = [lab for lab in self.labels if k in self._coverage[lab]]
+        if len(present) < len(self.labels):
+            return "only " + ", ".join(present)
+        records = {self._coverage[lab][k]["records"] for lab in self.labels}
+        spans = {
+            (self._coverage[lab][k]["start"], self._coverage[lab][k]["end"])
+            for lab in self.labels
+        }
+        if len(records) == 1 and len(spans) == 1:
+            return "identical"
+        return "span differs" if len(spans) > 1 else "records differ"
+
+    def _build_table(self) -> pd.DataFrame:
+        defaults = {"sensor": None, "records": 0, "start": pd.NaT, "end": pd.NaT}
+        data: dict[tuple, list] = {}
+        for label in self.labels:
+            cov = self._coverage[label]
+            for metric in ("sensor", "records", "start", "end"):
+                data[(label, metric)] = [
+                    cov.get(k, defaults).get(metric, defaults[metric]) for k in self.keys
+                ]
+        data[("summary", "present")] = [
+            sum(k in self._coverage[lab] for lab in self.labels) for k in self.keys
+        ]
+        data[("summary", "status")] = [self._status(k) for k in self.keys]
+
+        table = pd.DataFrame(
+            data,
+            index=pd.MultiIndex.from_tuples(self.keys, names=self.key),
+        )
+        table.columns = pd.MultiIndex.from_tuples(table.columns)
+        return table
+
+    def __repr__(self) -> str:
+        return self.table.to_string()
+
+    def _repr_html_(self) -> str:
+        return self.table.to_html()
+
+    def plot(
+        self,
+        max_gap: str = "7D",
+        ax: Axes | None = None,
+        colors: dict[str, Any] | None = None,
+    ) -> tuple[Figure, Axes]:
+        """Plot an N-way coverage timeline grouped by timeseries.
+
+        One row per ``key`` (e.g. location + variable); within each row a coverage
+        sub-bar per dataset (colour-coded, with a legend). Series present in only one
+        dataset, or covering different spans, are immediately visible.
+
+        Parameters:
+            max_gap (str): pandas timedelta string; gaps longer than this split a bar.
+            ax (Axes | None): existing axes to draw on; a new figure is created if None.
+            colors (dict | None): optional ``{label: colour}`` mapping.
+
+        Returns:
+            (fig, ax): Matplotlib figure and axes.
+        """
+        from matplotlib.patches import Patch
+
+        threshold = pd.Timedelta(max_gap)
+        if colors is None:
+            cmap = plt.get_cmap("tab10")
+            colors = {lab: cmap(i % 10) for i, lab in enumerate(self.labels)}
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(13, 0.45 * len(self.keys) + 1.5))
+        else:
+            fig = ax.figure
+
+        n = len(self.labels)
+        sub_h = 0.8 / n
+        for row, k in enumerate(self.keys):
+            for j, label in enumerate(self.labels):
+                info = self._coverage[label].get(k)
+                if info is None:
+                    continue
+                y = row - 0.4 + j * sub_h
+                ax.broken_barh(
+                    _coverage_segments(info["index"], threshold),
+                    (y, sub_h * 0.9),
+                    facecolors=colors[label],
+                )
+
+        ax.set_yticks(range(len(self.keys)))
+        ax.set_yticklabels([" ".join(map(str, k)) for k in self.keys], fontsize=7)
+        ax.invert_yaxis()
+        ax.xaxis_date()
+        ax.set_title("Coverage diff")
+        ax.grid(axis="x", alpha=0.3)
+        ax.legend(
+            handles=[Patch(facecolor=colors[lab], label=lab) for lab in self.labels],
+            bbox_to_anchor=(1.01, 1),
+            loc="upper left",
+            frameon=True,
+        )
+        fig.tight_layout()
+        return fig, ax
+
+
+def diff(
+    datasets: dict[str, Dataset] | list[Dataset],
+    key: tuple[str, ...] = ("location", "variable"),
+) -> CoverageDiff:
+    """Compare the coverage of two or more datasets.
+
+    Parameters:
+        datasets: a mapping ``{label: Dataset}`` (preferred - labels name the columns
+            and legend) or a list of datasets (auto-labelled ``ds0``, ``ds1`` ...).
+        key: attributes used to align series across datasets (default
+            ``("location", "variable")``).
+
+    Returns:
+        CoverageDiff: renders as a comparison table; ``.plot()`` draws the timeline.
+    """
+    if isinstance(datasets, Dataset):
+        message = "Pass two or more datasets to diff(), e.g. diff({'a': ds1, 'b': ds2})."
+        raise TypeError(message)
+    if not isinstance(datasets, dict):
+        datasets = {f"ds{i}": d for i, d in enumerate(datasets)}
+    return CoverageDiff(datasets, key=key)

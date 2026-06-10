@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from gensor.core.dataset import Coverage, Dataset
+from gensor.core.dataset import Coverage, CoverageDiff, Dataset, diff
 from gensor.core.timeseries import Timeseries
 from gensor.io.read import read_from_sql
 
@@ -302,6 +302,50 @@ def test_coverage_plot_returns_fig_ax(synthetic_dataset):
     fig, ax = synthetic_dataset.coverage.plot()
     assert fig is not None
     assert len(ax.get_yticks()) == len(synthetic_dataset.get_locations())
+    matplotlib.pyplot.close(fig)
+
+
+def test_diff_table_and_status(synthetic_dataset):
+    """Dataset.diff aligns by (location, variable) and reports per-dataset coverage."""
+    other = Dataset(timeseries=[synthetic_dataset[0].model_copy(deep=True)])  # Station A only
+    result = synthetic_dataset.diff(other, labels=["full", "partial"])
+
+    assert isinstance(result, CoverageDiff)
+    for col in [("full", "records"), ("partial", "records"), ("summary", "status"),
+                ("summary", "present")]:
+        assert col in result.table.columns
+
+    status = {idx[0]: val for idx, val in result.table[("summary", "status")].items()}
+    present = {idx[0]: val for idx, val in result.table[("summary", "present")].items()}
+    assert status["Station A"] == "identical"
+    assert status["Station B"] == "only full"
+    assert present["Station A"] == 2
+    assert present["Station B"] == 1
+
+
+def test_diff_module_function_with_list_autolabels(synthetic_dataset):
+    """diff() accepts a list and auto-labels ds0, ds1, ..."""
+    other = Dataset(timeseries=[synthetic_dataset[0].model_copy(deep=True)])
+    result = diff([synthetic_dataset, other])
+    assert ("ds0", "records") in result.table.columns
+    assert ("ds1", "records") in result.table.columns
+
+
+def test_diff_requires_at_least_two(synthetic_dataset):
+    with pytest.raises(ValueError):
+        diff({"only": synthetic_dataset})
+
+
+def test_diff_plot_returns_fig_ax(synthetic_dataset):
+    """CoverageDiff.plot() returns a (fig, ax) with one row per aligned key."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    other = Dataset(timeseries=[synthetic_dataset[0].model_copy(deep=True)])
+    comparison = synthetic_dataset.diff(other, labels=["a", "b"])
+    fig, ax = comparison.plot()
+    assert fig is not None
+    assert len(ax.get_yticks()) == len(comparison.keys)  # one row per aligned (location, variable)
     matplotlib.pyplot.close(fig)
 
 

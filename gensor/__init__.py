@@ -1,6 +1,6 @@
 import logging
 
-from .core.dataset import Dataset
+from .core.dataset import Dataset, diff
 from .core.timeseries import Timeseries
 from .io.read import read_from_csv, read_from_sql
 from .log import set_log_level
@@ -11,6 +11,8 @@ __all__ = [
     "Dataset",
     "Timeseries",
     "compensate",
+    # comparison
+    "diff",
     # getters
     "read_from_csv",
     "read_from_sql",
