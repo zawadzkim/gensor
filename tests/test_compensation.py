@@ -98,8 +98,12 @@ def test_threshold_wc_drops_negative_and_near_zero_water_columns():
     # baro = 1000 cmH2O; water columns (m): +5.0, +4.5, -0.02 (near zero), -0.5 (erroneous), +4.8
     sensor = pd.Series([1500.0, 1450.0, 998.0, 950.0, 1480.0], index=idx)
     ts = Timeseries(
-        ts=sensor, variable="pressure", unit="cmh2o",
-        location="PBX", sensor="S1", sensor_alt=30.0,
+        ts=sensor,
+        variable="pressure",
+        unit="cmh2o",
+        location="PBX",
+        sensor="S1",
+        sensor_alt=30.0,
     )
 
     compensated = compensate(raw=ts, barometric=1000.0, threshold_wc=0.05)
@@ -119,8 +123,12 @@ def test_water_column_standalone():
     # baro = 1000 cmH2O; water columns (m): +5.0, +0.01 (< 25 mm), -0.3, +4.0
     sensor = pd.Series([1500.0, 1001.0, 970.0, 1400.0], index=idx)
     ts = Timeseries(
-        ts=sensor, variable="pressure", unit="cmh2o",
-        location="PBX", sensor="S1", sensor_alt=30.0,
+        ts=sensor,
+        variable="pressure",
+        unit="cmh2o",
+        location="PBX",
+        sensor="S1",
+        sensor_alt=30.0,
     )
 
     wc = water_column(raw=ts, barometric=1000.0)
@@ -137,8 +145,12 @@ def test_compensate_equals_water_column_plus_sensor_alt():
     idx = pd.date_range("2022-01-01", periods=4, freq="h", tz="UTC")
     sensor = pd.Series([1500.0, 1001.0, 970.0, 1400.0], index=idx)
     ts = Timeseries(
-        ts=sensor, variable="pressure", unit="cmh2o",
-        location="PBX", sensor="S1", sensor_alt=30.0,
+        ts=sensor,
+        variable="pressure",
+        unit="cmh2o",
+        location="PBX",
+        sensor="S1",
+        sensor_alt=30.0,
     )
 
     wc = water_column(raw=ts, barometric=1000.0)
@@ -155,8 +167,12 @@ def test_default_threshold_drops_negative_water_columns():
     # baro = 1000 cmH2O; water columns (m): +5.0, +0.01 (< 25 mm), -0.3 (erroneous), +4.0
     sensor = pd.Series([1500.0, 1001.0, 970.0, 1400.0], index=idx)
     ts = Timeseries(
-        ts=sensor, variable="pressure", unit="cmh2o",
-        location="PBX", sensor="S1", sensor_alt=30.0,
+        ts=sensor,
+        variable="pressure",
+        unit="cmh2o",
+        location="PBX",
+        sensor="S1",
+        sensor_alt=30.0,
     )
 
     compensated = compensate(raw=ts, barometric=1000.0)  # default threshold_wc = 0.025

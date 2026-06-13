@@ -73,8 +73,12 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
         # Read the labelled header fields directly — far more reliable than matching a
         # regex against the whole file, which can grab a stray token from the embedded
         # FILENAME path (e.g. a folder name) instead of the real serial.
-        location = pick(patterns["location"], fields.get("Location"), kwargs.get("location"))
-        sensor = pick(patterns["sensor"], fields.get("Serial number"), kwargs.get("sensor"))
+        location = pick(
+            patterns["location"], fields.get("Location"), kwargs.get("location")
+        )
+        sensor = pick(
+            patterns["sensor"], fields.get("Serial number"), kwargs.get("sensor")
+        )
         tz_match = re.search(patterns["timezone"], text)
         timezone = tz_match.group() if tz_match else "UTC"
 
@@ -109,9 +113,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
                     )
                 )
             else:
-                message = (
-                    f"Unsupported variable: {col}. Please provide a valid variable type."
-                )
+                message = f"Unsupported variable: {col}. Please provide a valid variable type."
                 raise ValueError(message)
 
     return ts_list

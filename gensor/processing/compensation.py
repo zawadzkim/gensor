@@ -207,7 +207,8 @@ def _apply(
 
     def _one(item: Timeseries, dates: list | None) -> Timeseries | None:
         comp = Compensator(ts=item, barometric=barometric)
-        result = getattr(comp, step)(
+        method = comp.water_column if step == "water_column" else comp.compensate
+        result = method(
             alignment_period=alignment_period,
             threshold_wc=threshold_wc,
             fieldwork_dates=dates,
@@ -259,8 +260,13 @@ def compensate(
         Timeseries | Dataset | None: head (variable 'head', unit 'm asl').
     """
     return _apply(
-        "compensate", raw, barometric, alignment_period, threshold_wc,
-        fieldwork_dates, interpolate_method,
+        "compensate",
+        raw,
+        barometric,
+        alignment_period,
+        threshold_wc,
+        fieldwork_dates,
+        interpolate_method,
     )
 
 
@@ -301,6 +307,11 @@ def water_column(
             unit 'm').
     """
     return _apply(
-        "water_column", raw, barometric, alignment_period, threshold_wc,
-        fieldwork_dates, interpolate_method,
+        "water_column",
+        raw,
+        barometric,
+        alignment_period,
+        threshold_wc,
+        fieldwork_dates,
+        interpolate_method,
     )

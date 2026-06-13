@@ -211,14 +211,18 @@ def test_filter_negated_combination_spares_partial_match(synthetic_dataset):
 
 def test_filter_union_of_negated_predicates(synthetic_dataset):
     """Several negated predicates AND together to remove the union of their matches."""
-    result = synthetic_dataset.filter(~Where(location="Station A"), ~Where(location="Station B"))
+    result = synthetic_dataset.filter(
+        ~Where(location="Station A"), ~Where(location="Station B")
+    )
     assert isinstance(result, Dataset)
     assert len(result) == 0
 
 
 def test_where_or_combination(synthetic_dataset):
     """Where supports | (or): keep series matching either branch."""
-    result = synthetic_dataset.filter(Where(location="Station A") | Where(location="Station B"))
+    result = synthetic_dataset.filter(
+        Where(location="Station A") | Where(location="Station B")
+    )
     assert isinstance(result, Dataset)
     assert len(result) == 2
 
@@ -391,7 +395,14 @@ def test_info_table(synthetic_dataset):
     """Dataset.info is a per-timeseries metadata table."""
     info = synthetic_dataset.info
     assert isinstance(info, pd.DataFrame)
-    assert list(info.columns) == ["location", "variable", "sensor", "records", "start", "end"]
+    assert list(info.columns) == [
+        "location",
+        "variable",
+        "sensor",
+        "records",
+        "start",
+        "end",
+    ]
     assert len(info) == len(synthetic_dataset)
     assert set(info["location"]) == {"Station A", "Station B"}
     assert (info["records"] > 0).all()
@@ -410,12 +421,18 @@ def test_coverage_plot_returns_fig_ax(synthetic_dataset):
 
 def test_diff_table_and_status(synthetic_dataset):
     """Dataset.diff aligns by (location, variable) and reports per-dataset coverage."""
-    other = Dataset(timeseries=[synthetic_dataset[0].model_copy(deep=True)])  # Station A only
+    other = Dataset(
+        timeseries=[synthetic_dataset[0].model_copy(deep=True)]
+    )  # Station A only
     result = synthetic_dataset.diff(other, labels=["full", "partial"])
 
     assert isinstance(result, CoverageDiff)
-    for col in [("full", "records"), ("partial", "records"), ("summary", "status"),
-                ("summary", "present")]:
+    for col in [
+        ("full", "records"),
+        ("partial", "records"),
+        ("summary", "status"),
+        ("summary", "present"),
+    ]:
         assert col in result.table.columns
 
     status = {idx[0]: val for idx, val in result.table[("summary", "status")].items()}
@@ -448,7 +465,9 @@ def test_diff_plot_returns_fig_ax(synthetic_dataset):
     comparison = synthetic_dataset.diff(other, labels=["a", "b"])
     fig, ax = comparison.plot()
     assert fig is not None
-    assert len(ax.get_yticks()) == len(comparison.keys)  # one row per aligned (location, variable)
+    assert len(ax.get_yticks()) == len(
+        comparison.keys
+    )  # one row per aligned (location, variable)
     matplotlib.pyplot.close(fig)
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generic
+from typing import Any, ClassVar, Generic
 
 import pandas as pd
 import pydantic as pyd
@@ -28,7 +28,9 @@ def _split(value: str | list | None) -> tuple[set, set]:
     include: set = set()
     exclude: set = set()
     for v in values:
-        (exclude if v.startswith("~") else include).add(v[1:] if v.startswith("~") else v)
+        (exclude if v.startswith("~") else include).add(
+            v[1:] if v.startswith("~") else v
+        )
     return include, exclude
 
 
@@ -60,7 +62,9 @@ class Where:
         def test(ts: Any) -> bool:
             for attr, (include, exclude) in specs.items():
                 if not hasattr(ts, attr):
-                    message = f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
+                    message = (
+                        f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
+                    )
                     raise AttributeError(message)
                 actual = getattr(ts, attr)
                 if (include and actual not in include) or actual in exclude:
@@ -171,7 +175,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
                 raise KeyError(message)
             return result
 
-        if isinstance(key, (str, list)):
+        if isinstance(key, str | list):
             result = self.filter(location=key)
             if isinstance(result, Dataset) and len(result) == 0:
                 message = f"No timeseries found for location(s) {key!r}."
@@ -185,9 +189,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
 
     def __contains__(self, location: object) -> bool:
         """Return True if any timeseries in the dataset has the given location."""
-        return any(
-            ts is not None and ts.location == location for ts in self.timeseries
-        )
+        return any(ts is not None and ts.location == location for ts in self.timeseries)
 
     def get_locations(self) -> list:
         """List all unique locations in the dataset, preserving first-seen order."""
@@ -253,7 +255,9 @@ class Dataset(pyd.BaseModel, Generic[T]):
             columns=columns,
         )
         if not table.empty:
-            table = table.sort_values(["location", "variable", "sensor"]).reset_index(drop=True)
+            table = table.sort_values(["location", "variable", "sensor"]).reset_index(
+                drop=True
+            )
         return table
 
     def diff(
@@ -449,7 +453,11 @@ class Dataset(pyd.BaseModel, Generic[T]):
         match.
         """
         keywords = {"location": location, "variable": variable, "unit": unit, **kwargs}
-        tests = [Where(**{attr: value}) for attr, value in keywords.items() if value is not None]
+        tests = [
+            Where(**{attr: value})
+            for attr, value in keywords.items()
+            if value is not None
+        ]
         tests.extend(predicates)
 
         def keep(ts: T | None) -> bool:
@@ -523,65 +531,115 @@ class Dataset(pyd.BaseModel, Generic[T]):
         )
 
         if facet == "variable":
-            fig, axes = plt.subplots(
-                len(variables), 1, figsize=(10, 5 * len(variables)), sharex=True, squeeze=False
+            return self._plot_by_variable(
+                variables, include_outliers, plot_kwargs, legend_kwargs
             )
-            axes = list(axes.ravel())
-            for ax, var in zip(axes, variables, strict=False):
-                for ts in self.timeseries:
-                    if ts is not None and ts.variable == var and len(ts.ts) > 0:
-                        ts.plot(
-                            include_outliers=include_outliers,
-                            ax=ax,
-                            plot_kwargs=plot_kwargs,
-                            legend_kwargs=legend_kwargs,
-                        )
-                ax.set_title(f"Timeseries for {var.capitalize()}")
-                ax.set_xlabel("Time")
-            fig.tight_layout()
-            return fig, axes
-
         if facet == "location":
-            locations = self.get_locations()
-            nrows = (len(locations) + ncols - 1) // ncols if locations else 1
-            pkw = {"lw": 0.7, **(plot_kwargs or {})}
-            lkw = {"fontsize": 7, **(legend_kwargs or {})}
-            results: dict[str, tuple[Figure, list]] = {}
-            for var in variables:
-                fig, axs = plt.subplots(
-                    nrows, ncols, figsize=(4 * ncols, 2.3 * nrows), squeeze=False, sharex=sharex
-                )
-                axes = list(axs.ravel())
-                for ax, loc in zip(axes, locations, strict=False):
-                    series = [
-                        ts
-                        for ts in self.timeseries
-                        if ts is not None
-                        and ts.location == loc
-                        and ts.variable == var
-                        and len(ts.ts) > 0
-                    ]
-                    for ts in series:
-                        ax.plot(ts.ts.index, ts.ts.to_numpy(), label=ts.sensor, **pkw)
-                        if include_outliers and ts.outliers is not None and len(ts.outliers) > 0:
-                            ax.scatter(ts.outliers.index, ts.outliers, color="red", s=5)
-                    ax.set_title(loc, fontsize=8)  # every location keeps a panel, even if empty
-                    ax.tick_params(labelsize=6)
-                    for label in ax.get_xticklabels():
-                        label.set_rotation(45)
-                        label.set_ha("right")
-                    # only worth a legend when sensors share a panel; label them by serial
-                    if len(series) > 1:
-                        ax.legend(**lkw)
-                for ax in axes[len(locations):]:
-                    ax.set_visible(False)  # hide unused trailing cells
-                fig.suptitle(f"{var.capitalize()} by location", fontsize=13)
-                fig.tight_layout(rect=(0, 0, 1, 0.98))  # leave room for the suptitle
-                results[var] = (fig, axes)
-            return results
+            return self._plot_by_location(
+                variables, ncols, sharex, include_outliers, plot_kwargs, legend_kwargs
+            )
 
         message = f"facet must be 'variable' or 'location', got {facet!r}."
         raise ValueError(message)
+
+    def _plot_by_variable(
+        self,
+        variables: list,
+        include_outliers: bool,
+        plot_kwargs: dict[str, Any] | None,
+        legend_kwargs: dict[str, Any] | None,
+    ) -> tuple[Figure, list]:
+        """One subplot per variable, every location overlaid (see :meth:`plot`)."""
+        fig, axs = plt.subplots(
+            len(variables),
+            1,
+            figsize=(10, 5 * len(variables)),
+            sharex=True,
+            squeeze=False,
+        )
+        axes = list(axs.ravel())
+        for ax, var in zip(axes, variables, strict=False):
+            for ts in self.timeseries:
+                if ts is not None and ts.variable == var and len(ts.ts) > 0:
+                    ts.plot(
+                        include_outliers=include_outliers,
+                        ax=ax,
+                        plot_kwargs=plot_kwargs,
+                        legend_kwargs=legend_kwargs,
+                    )
+            ax.set_title(f"Timeseries for {var.capitalize()}")
+            ax.set_xlabel("Time")
+        fig.tight_layout()
+        return fig, axes
+
+    def _series_at(self, location: str, variable: str) -> list:
+        """Non-empty timeseries at a given location and variable."""
+        return [
+            ts
+            for ts in self.timeseries
+            if ts is not None
+            and ts.location == location
+            and ts.variable == variable
+            and len(ts.ts) > 0
+        ]
+
+    def _draw_location_panel(
+        self,
+        ax: Axes,
+        series: list,
+        include_outliers: bool,
+        plot_kwargs: dict[str, Any],
+        legend_kwargs: dict[str, Any],
+    ) -> None:
+        """Draw one location panel: overlay its series, style ticks, legend if shared."""
+        for ts in series:
+            ax.plot(ts.ts.index, ts.ts.to_numpy(), label=ts.sensor, **plot_kwargs)
+            if include_outliers and ts.outliers is not None and len(ts.outliers) > 0:
+                ax.scatter(ts.outliers.index, ts.outliers, color="red", s=5)
+        ax.tick_params(labelsize=6)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_ha("right")
+        if len(series) > 1:  # only label sensors when they share a panel
+            ax.legend(**legend_kwargs)
+
+    def _plot_by_location(
+        self,
+        variables: list,
+        ncols: int,
+        sharex: bool,
+        include_outliers: bool,
+        plot_kwargs: dict[str, Any] | None,
+        legend_kwargs: dict[str, Any] | None,
+    ) -> dict[str, tuple[Figure, list]]:
+        """A grid of one panel per location, a figure per variable (see :meth:`plot`)."""
+        locations = self.get_locations()
+        nrows = (len(locations) + ncols - 1) // ncols if locations else 1
+        pkw = {"lw": 0.7, **(plot_kwargs or {})}
+        lkw = {"fontsize": 7, **(legend_kwargs or {})}
+        results: dict[str, tuple[Figure, list]] = {}
+        for var in variables:
+            fig, axs = plt.subplots(
+                nrows,
+                ncols,
+                figsize=(4 * ncols, 2.3 * nrows),
+                squeeze=False,
+                sharex=sharex,
+            )
+            axes = list(axs.ravel())
+            for ax, loc in zip(axes, locations, strict=False):
+                ax.set_title(
+                    loc, fontsize=8
+                )  # every location keeps a panel, even if empty
+                self._draw_location_panel(
+                    ax, self._series_at(loc, var), include_outliers, pkw, lkw
+                )
+            for ax in axes[len(locations) :]:
+                ax.set_visible(False)  # hide unused trailing cells
+            fig.suptitle(f"{var.capitalize()} by location", fontsize=13)
+            fig.tight_layout(rect=(0, 0, 1, 0.98))  # leave room for the suptitle
+            results[var] = (fig, axes)
+        return results
 
 
 def _coverage_segments(index: pd.DatetimeIndex, threshold: pd.Timedelta) -> list[tuple]:
@@ -615,7 +673,15 @@ class Coverage:
     the per-series summary has a single source.
     """
 
-    columns = ["location", "variable", "sensor", "records", "start", "end", "duration"]
+    columns: ClassVar[list[str]] = [
+        "location",
+        "variable",
+        "sensor",
+        "records",
+        "start",
+        "end",
+        "duration",
+    ]
 
     def __init__(self, dataset: Dataset) -> None:
         self._dataset = dataset
@@ -657,14 +723,16 @@ class Coverage:
             fig = ax.figure
 
         for row, location in enumerate(locations):
-            index = None
+            index: pd.DatetimeIndex | None = None
             for ts in self._dataset:
                 if ts is None or ts.location != location or len(ts.ts) == 0:
                     continue
                 index = ts.ts.index if index is None else index.union(ts.ts.index)
             if index is None or len(index) == 0:
                 continue
-            ax.broken_barh(_coverage_segments(index, threshold), (row - 0.4, 0.8), facecolors=color)
+            ax.broken_barh(
+                _coverage_segments(index, threshold), (row - 0.4, 0.8), facecolors=color
+            )
 
         ax.set_yticks(range(len(locations)))
         ax.set_yticklabels(locations, fontsize=8)
@@ -713,9 +781,13 @@ class CoverageDiff:
                     continue
                 k = tuple(getattr(ts, attr) for attr in self.key)
                 index_by_key[k] = (
-                    ts.ts.index if k not in index_by_key else index_by_key[k].union(ts.ts.index)
+                    ts.ts.index
+                    if k not in index_by_key
+                    else index_by_key[k].union(ts.ts.index)
                 )
-            self._index[label] = {k: idx.sort_values() for k, idx in index_by_key.items()}
+            self._index[label] = {
+                k: idx.sort_values() for k, idx in index_by_key.items()
+            }
 
         self.keys = sorted({k for cov in self._coverage.values() for k in cov})
         self.table = self._build_table()
@@ -764,7 +836,8 @@ class CoverageDiff:
             cov = self._coverage[label]
             for metric in ("sensor", "records", "start", "end"):
                 data[(label, metric)] = [
-                    cov.get(k, defaults).get(metric, defaults[metric]) for k in self.keys
+                    cov.get(k, defaults).get(metric, defaults[metric])
+                    for k in self.keys
                 ]
         data[("summary", "present")] = [
             sum(k in self._coverage[lab] for lab in self.labels) for k in self.keys
@@ -862,7 +935,9 @@ def diff(
         CoverageDiff: renders as a comparison table; ``.plot()`` draws the timeline.
     """
     if isinstance(datasets, Dataset):
-        message = "Pass two or more datasets to diff(), e.g. diff({'a': ds1, 'b': ds2})."
+        message = (
+            "Pass two or more datasets to diff(), e.g. diff({'a': ds1, 'b': ds2})."
+        )
         raise TypeError(message)
     if not isinstance(datasets, dict):
         datasets = {f"ds{i}": d for i, d in enumerate(datasets)}

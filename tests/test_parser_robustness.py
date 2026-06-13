@@ -47,7 +47,9 @@ def test_vanessen_single_letter_serial(tmp_path):
 def test_vanessen_explicit_location_sensor_override():
     """Explicit location/sensor kwargs should win over the regex extraction."""
     ts = _as_timeseries(
-        read_from_csv(pb01a, file_format="vanessen", location="CUSTOMLOC", sensor="XYZ001")
+        read_from_csv(
+            pb01a, file_format="vanessen", location="CUSTOMLOC", sensor="XYZ001"
+        )
     )
     assert ts.location == "CUSTOMLOC"
     assert ts.sensor == "XYZ001"
