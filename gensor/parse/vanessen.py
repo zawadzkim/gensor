@@ -1,12 +1,13 @@
 """Logic parsing CSV files from van Essen Instruments Divers."""
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
 from ..config import VARIABLE_TYPES_AND_UNITS
 from ..core.timeseries import Timeseries
-from .utils import detect_encoding, get_data, get_metadata, handle_timestamps
+from .utils import detect_encoding, get_data, get_header_fields, handle_timestamps
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
     """
 
     patterns = {
-        "sensor": kwargs.get("serial_number_pattern", r"[A-Za-z]{2}\d{3,4}"),
+        "sensor": kwargs.get("serial_number_pattern", r"[A-Za-z]{1,2}\d{3,4}"),
         "location": kwargs.get(
             "location_pattern", r"[A-Za-z]{2}\d{2}[A-Za-z]{1}|Barodiver"
         ),
@@ -51,10 +52,41 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
     with path.open(mode="r", encoding=encoding) as f:
         text = f.read()
 
-        metadata = get_metadata(text, patterns)
+        fields = get_header_fields(text)
 
-        if not metadata:
-            logger.info(f"Skipping file {path} due to missing metadata.")
+        def pick(pattern: str, raw: str | None, override: str | None) -> str | None:
+            """Resolve a metadata value from a labelled header field.
+
+            An explicit ``location=``/``sensor=`` kwarg always wins. Otherwise the
+            pattern is matched against *that field's value only* (so e.g. the serial
+            ``AZ066`` is pulled out of ``..00-AZ066  219.`` and the location ``PB16A``
+            out of ``pb16a_moni_az066``), falling back to the verbatim field value
+            when the pattern does not match (e.g. ``FL1`` / ``barodiver`` locations).
+            """
+            if override:
+                return override
+            if not raw:
+                return None
+            match = re.search(pattern, raw)
+            return match.group() if match else raw
+
+        # Read the labelled header fields directly — far more reliable than matching a
+        # regex against the whole file, which can grab a stray token from the embedded
+        # FILENAME path (e.g. a folder name) instead of the real serial.
+        location = pick(
+            patterns["location"], fields.get("Location"), kwargs.get("location")
+        )
+        sensor = pick(
+            patterns["sensor"], fields.get("Serial number"), kwargs.get("sensor")
+        )
+        tz_match = re.search(patterns["timezone"], text)
+        timezone = tz_match.group() if tz_match else "UTC"
+
+        if location is None or sensor is None:
+            logger.info(
+                f"Skipping file {path} due to missing metadata "
+                "(pass location=/sensor= to override)."
+            )
             return []
 
         data_start = "Date/time"
@@ -62,7 +94,7 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
 
         df = get_data(text, data_start, data_end, column_names)
 
-        df = handle_timestamps(df, metadata.get("timezone", "UTC"))
+        df = handle_timestamps(df, timezone)
 
         ts_list = []
 
@@ -74,16 +106,14 @@ def parse_vanessen_csv(path: Path, **kwargs: Any) -> list[Timeseries]:
                         ts=df[col],
                         # Validation will be done in Pydantic
                         variable=col,  # type: ignore[arg-type]
-                        location=metadata.get("location"),
-                        sensor=metadata.get("sensor"),
+                        location=location,
+                        sensor=sensor,
                         # Validation will be done in Pydantic
                         unit=unit,  # type: ignore[arg-type]
                     )
                 )
             else:
-                message = (
-                    "Unsupported variable: {col}. Please provide a valid variable type."
-                )
+                message = f"Unsupported variable: {col}. Please provide a valid variable type."
                 raise ValueError(message)
 
     return ts_list
