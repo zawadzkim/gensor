@@ -11,33 +11,44 @@ permissions:
 
 jobs:
   publish:
+    # Only release after Quality control SUCCEEDS on main (i.e. a merge to main).
+    # Never on pull requests or on pushes to dev (those run QC too, but on other branches).
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the code
+      - name: Check out the validated commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Set up the environment
         uses: ./.github/actions/setup-poetry-env
 
       - name: Extract version from pyproject.toml
-        id: extract_version
-        run: |
-          version=$(poetry version -s)
-          echo "VERSION=$version" >> $GITHUB_ENV
+        run: echo "VERSION=$(poetry version -s)" >> "$GITHUB_ENV"
 
-      - name: Create Git tag if not exists
+      - name: Check whether the release tag already exists
+        id: tag
+        run: |
+          git fetch --tags --quiet
+          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v${{ env.VERSION }} already exists - skipping release. Bump the version to publish a new release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push Git tag
+        if: steps.tag.outputs.exists == 'false'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
-            echo "Tag v${{ env.VERSION }} already exists. Skipping tag creation."
-          else
-            git tag v${{ env.VERSION }}
-            git push origin v${{ env.VERSION }}
-          fi
+          git tag "v${{ env.VERSION }}"
+          git push origin "v${{ env.VERSION }}"
 
       - name: Create GitHub Release
-        id: create_release
+        if: steps.tag.outputs.exists == 'false'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,6 +59,7 @@ jobs:
           prerelease: false
 
       - name: Build and publish to PyPi
+        if: steps.tag.outputs.exists == 'false'
         run: |
           source .venv/bin/activate
           poetry version ${{ env.VERSION }}
