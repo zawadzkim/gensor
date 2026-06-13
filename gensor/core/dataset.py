@@ -599,7 +599,7 @@ class Dataset(pyd.BaseModel, Generic[T]):
         ax.tick_params(labelsize=6)
         for label in ax.get_xticklabels():
             label.set_rotation(45)
-            label.set_ha("right")
+            label.set_horizontalalignment("right")
         if len(series) > 1:  # only label sensors when they share a panel
             ax.legend(**legend_kwargs)
 
