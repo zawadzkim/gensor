@@ -3,8 +3,30 @@ name: Quality control
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [dev, main]
 
 jobs:
+  tag-check:
+    # On a push to dev, report whether the current version already has a release tag,
+    # as a reminder to bump before merging to main. Informational only - never releases.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Warn if the version tag already exists
+        run: |
+          version=$(grep -m1 '^version' pyproject.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          git fetch --tags --quiet
+          if git rev-parse "v${version}" >/dev/null 2>&1; then
+            echo "::warning::Version v${version} already has a tag; bump the version before merging to main to publish a release."
+          else
+            echo "Version v${version} has no tag yet - it will be released on merge to main."
+          fi
+
   quality:
     runs-on: ubuntu-latest
     steps:
