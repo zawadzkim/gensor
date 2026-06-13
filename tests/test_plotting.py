@@ -44,3 +44,54 @@ def test_dataset_plot(synthetic_dataset):
         assert ax.get_xlabel() == "Time"
 
     plt.close(fig)
+
+
+def test_dataset_plot_facet_location(synthetic_dataset):
+    """facet='location' returns a figure per variable, one panel per location."""
+    result = synthetic_dataset.plot(facet="location", ncols=5)
+
+    # synthetic_dataset has a single variable (pressure) -> one figure
+    assert isinstance(result, dict)
+    assert set(result) == {ts.variable for ts in synthetic_dataset.timeseries}
+
+    fig, axes = result["pressure"]
+    assert isinstance(fig, plt.Figure)
+    locations = synthetic_dataset.get_locations()
+    # every location gets a (titled) panel; the rest of the grid is hidden
+    visible = [ax for ax in axes if ax.get_visible()]
+    assert len(visible) == len(locations)
+    assert {ax.get_title() for ax in visible} == set(locations)
+
+    for fig, _ in result.values():
+        plt.close(fig)
+
+
+def test_dataset_plot_facet_location_legend_by_sensor(synthetic_submerged_timeseries):
+    """A panel with >1 sensor shows a legend labelled by serial; single-series panels don't."""
+    from gensor.core.dataset import Dataset
+
+    ts_a1 = synthetic_submerged_timeseries  # location 'Station A', sensor 'Sensor 1'
+    ts_a2 = ts_a1.model_copy(update={"sensor": "Sensor X"})  # same location, 2nd sensor
+    ts_b = ts_a1.model_copy(update={"location": "Station B", "sensor": "Sensor 2"})
+    ds = Dataset(timeseries=[ts_a1, ts_a2, ts_b])
+
+    fig, axes = ds.plot(facet="location")["pressure"]
+    by_loc = {ax.get_title(): ax for ax in axes if ax.get_visible()}
+
+    # Station A has two sensors -> legend by serial; Station B has one -> no legend
+    leg_a = by_loc["Station A"].get_legend()
+    assert leg_a is not None
+    assert {t.get_text() for t in leg_a.get_texts()} == {"Sensor 1", "Sensor X"}
+    assert by_loc["Station B"].get_legend() is None
+
+    plt.close(fig)
+
+
+def test_dataset_plot_facet_location_sharex(synthetic_dataset):
+    """sharex=True aligns every location panel to the same (full) x-range."""
+    fig, axes = synthetic_dataset.plot(facet="location", sharex=True)["pressure"]
+    drawn = [ax for ax in axes if ax.get_visible() and ax.lines]
+    assert len(drawn) >= 2
+    xlims = {ax.get_xlim() for ax in drawn}
+    assert len(xlims) == 1  # all panels share identical x-limits
+    plt.close(fig)

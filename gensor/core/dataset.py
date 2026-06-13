@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from typing import Any, Generic
 
 import pandas as pd
@@ -15,6 +14,105 @@ from gensor.db import DatabaseConnection
 from gensor.exceptions import IndexOutOfRangeError
 
 logger = logging.getLogger(__name__)
+
+
+def _split(value: str | list | None) -> tuple[set, set]:
+    """Split an attribute spec into (include, exclude) value sets.
+
+    A leading ``~`` on a string value moves it to the exclude set; ``None`` (or an
+    empty spec) constrains nothing. Shared by ``Dataset.filter`` and ``Where``.
+    """
+    if value is None:
+        return set(), set()
+    values = [value] if isinstance(value, str) else value
+    include: set = set()
+    exclude: set = set()
+    for v in values:
+        (exclude if v.startswith("~") else include).add(v[1:] if v.startswith("~") else v)
+    return include, exclude
+
+
+class Where:
+    """A composable predicate over a Timeseries' attributes, for ``Dataset.filter``/``drop``.
+
+    A leaf ``Where(**conditions)`` matches a Timeseries when **every** condition holds;
+    each condition matches when the timeseries' attribute equals (or is in, for a list)
+    the given value(s), and a leading ``~`` on a value negates that single condition.
+    Compose leaves with ``&`` (and), ``|`` (or) and ``~`` (not) to express anything the
+    per-attribute keyword filters can't - in particular a *combined* exclusion::
+
+        ~Where(location="PB03B", sensor="AV319")            # not (PB03B and AV319)
+        Where(variable="pressure") & ~Where(location="PB16D")
+        Where(location="PB16A") | Where(location="PB16B")
+
+    Pass instances straight to ``Dataset.filter`` (keep matches) or ``Dataset.drop``
+    (remove matches); they are AND-ed with the keyword filters in the same call.
+    """
+
+    def __init__(self, _test: Any = None, **conditions: str | list) -> None:
+        self._conditions = conditions
+        self._test = _test if _test is not None else self._compile(conditions)
+
+    @staticmethod
+    def _compile(conditions: dict) -> Any:
+        specs = {attr: _split(value) for attr, value in conditions.items()}
+
+        def test(ts: Any) -> bool:
+            for attr, (include, exclude) in specs.items():
+                if not hasattr(ts, attr):
+                    message = f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
+                    raise AttributeError(message)
+                actual = getattr(ts, attr)
+                if (include and actual not in include) or actual in exclude:
+                    return False
+            return True
+
+        return test
+
+    def __call__(self, ts: Any) -> bool:
+        return bool(self._test(ts))
+
+    def __invert__(self) -> Where:
+        return Where(_test=lambda ts: not self._test(ts))
+
+    def __and__(self, other: Where) -> Where:
+        return Where(_test=lambda ts: self._test(ts) and other(ts))
+
+    def __or__(self, other: Where) -> Where:
+        return Where(_test=lambda ts: self._test(ts) or other(ts))
+
+    def __repr__(self) -> str:
+        body = ", ".join(f"{k}={v!r}" for k, v in self._conditions.items())
+        return f"Where({body})"
+
+
+class DatasetIndexer:
+    """Applies a pandas ``.loc`` selection to every Timeseries in a Dataset.
+
+    Returned by :attr:`Dataset.loc`. ``ds.loc[start:end]`` slices each timeseries by label
+    (e.g. a date range) via its own ``.loc`` and returns a new Dataset of the results.
+    Intended for label slices; a key that selects a single scalar from a timeseries (a
+    point lookup) is rejected, since the per-series scalars can't form a Dataset.
+    """
+
+    def __init__(self, parent: Dataset) -> None:
+        self.parent = parent
+
+    def __getitem__(self, key: Any) -> Dataset:
+        sliced: list = []
+        for ts in self.parent.timeseries:
+            if ts is None:
+                sliced.append(None)
+                continue
+            result = ts.loc[key]
+            if not isinstance(result, BaseTimeseries):
+                message = (
+                    "Dataset.loc expects a label slice (e.g. ds.loc[start:end]); "
+                    f"key {key!r} selected a scalar from a timeseries."
+                )
+                raise TypeError(message)
+            sliced.append(result)
+        return self.parent.model_copy(update={"timeseries": sliced}, deep=False)
 
 
 class Dataset(pyd.BaseModel, Generic[T]):
@@ -100,6 +198,19 @@ class Dataset(pyd.BaseModel, Generic[T]):
         return locations
 
     @property
+    def loc(self) -> DatasetIndexer:
+        """Label-based selection applied to every timeseries in the dataset.
+
+        ``ds.loc[start:end]`` returns a new Dataset where each timeseries is sliced by
+        ``.loc[start:end]`` (e.g. a date range), forwarding the key to each series' own
+        pandas ``.loc``. Empty slices yield empty timeseries (every series is kept).
+
+        Examples:
+            >>> ds.loc["2021-01-01":"2021-12-31"]  # doctest: +SKIP
+        """
+        return DatasetIndexer(self)
+
+    @property
     def coverage(self) -> Coverage:
         """Coverage summary of the dataset.
 
@@ -111,6 +222,39 @@ class Dataset(pyd.BaseModel, Generic[T]):
             >>> ds.coverage.plot()   # the timeline  # doctest: +SKIP
         """
         return Coverage(self)
+
+    @property
+    def info(self) -> pd.DataFrame:
+        """Per-timeseries metadata summary, rendered as a table.
+
+        One row per timeseries — ``location``, ``variable``, ``sensor``, the number of
+        ``records``, and the ``start`` / ``end`` of its time span. A quick look at what
+        a Dataset holds before processing it (the default repr only shows the timeseries
+        count). See :attr:`coverage` for a plottable version and :func:`gensor.diff` to
+        line this up across datasets.
+
+        Examples:
+            >>> ds.info  # doctest: +SKIP
+        """
+        columns = ["location", "variable", "sensor", "records", "start", "end"]
+        table = pd.DataFrame(
+            [
+                {
+                    "location": ts.location,
+                    "variable": ts.variable,
+                    "sensor": getattr(ts, "sensor", None),
+                    "records": len(ts.ts),
+                    "start": ts.ts.index.min(),
+                    "end": ts.ts.index.max(),
+                }
+                for ts in self.timeseries
+                if ts is not None and len(ts.ts) > 0
+            ],
+            columns=columns,
+        )
+        if not table.empty:
+            table = table.sort_values(["location", "variable", "sensor"]).reset_index(drop=True)
+        return table
 
     def diff(
         self,
@@ -192,10 +336,10 @@ class Dataset(pyd.BaseModel, Generic[T]):
 
     def filter(
         self,
+        *predicates: Where,
         location: str | list | None = None,
         variable: str | list | None = None,
         unit: str | list | None = None,
-        exclude: dict[str, str | list] | None = None,
         **kwargs: str | list,
     ) -> T | Dataset:
         """Return a Timeseries or a new Dataset filtered by station, sensor,
@@ -205,56 +349,34 @@ class Dataset(pyd.BaseModel, Generic[T]):
         a single value or a list of values, matching a timeseries when its attribute
         equals (or is in) the given value(s).
 
-        To filter by the *opposite* - dropping timeseries rather than selecting them -
-        pass ``exclude``, a dict of ``{attribute: value | list}``. A timeseries is
-        removed when it matches **all** conditions in ``exclude`` (e.g.
-        ``exclude={"location": "PB16D"}`` drops that location, while
-        ``exclude={"location": "PB03B", "sensor": "AV319"}`` drops only that one
-        sensor at that location). ``exclude`` is applied after the include filters.
+        Prefix a value with ``~`` to *negate* it - drop timeseries with that value
+        rather than keep them (e.g. ``location="~PB16D"`` keeps everything except
+        PB16D; ``sensor="~AV319"`` drops just that sensor). Positive and negated
+        values may be mixed within one attribute and across attributes; for a given
+        attribute a timeseries is kept when its value is in the positives (if any are
+        given) **and** not in the negatives, and attributes are AND-ed together.
+
+        For conditions the per-attribute keywords can't express - notably a *combined*
+        match across attributes - pass one or more :class:`Where` predicates
+        positionally. ``filter(~Where(location="PB03B", sensor="AV319"))`` drops only that
+        sensor at that location (the whole combination negated as a unit), while
+        ``filter(Where(location="PB16A") | Where(location="PB16B"))`` keeps either.
+        Predicates are AND-ed with the keyword filters.
 
         Parameters:
-            location (str | list, optional): The location name(s).
-            variable (str | list, optional): The variable(s) being measured.
-            unit (str | list, optional): Unit(s) of the measurement.
-            exclude (dict, optional): ``{attribute: value | list}`` conditions whose
-                (combined) match removes a timeseries from the result.
+            *predicates (Where): Predicate objects; all must match for a timeseries to
+                be kept (combine with ``& | ~``).
+            location (str | list, optional): The location name(s); ``~`` negates.
+            variable (str | list, optional): The variable(s) being measured; ``~`` negates.
+            unit (str | list, optional): Unit(s) of the measurement; ``~`` negates.
             **kwargs (str | list): Attributes of subclassed timeseries used for
-                filtering (e.g., sensor, method).
+                filtering (e.g., sensor, method); ``~`` negates.
 
         Returns:
             Timeseries | Dataset: A single Timeseries if exactly one match is found,
                                    or a new Dataset if multiple matches are found.
         """
-
-        def as_list(value: str | list | None) -> list | None:
-            return [value] if isinstance(value, str) else value
-
-        def matches(ts: T, attr: str, value: list) -> bool:
-            """Check the Timeseries has the attribute and its value is in ``value``."""
-            if not hasattr(ts, attr):
-                message = f"'{ts.__class__.__name__}' object has no attribute '{attr}'"
-                raise AttributeError(message)
-            return getattr(ts, attr) in value
-
-        location, variable, unit = as_list(location), as_list(variable), as_list(unit)
-        kwargs = {attr: as_list(value) for attr, value in kwargs.items()}
-        exclude = {attr: as_list(value) for attr, value in (exclude or {}).items()}
-
-        def keep(ts: T | None) -> bool:
-            if ts is None:
-                return False
-            if location is not None and ts.location not in location:
-                return False
-            if variable is not None and ts.variable not in variable:
-                return False
-            if unit is not None and ts.unit not in unit:
-                return False
-            if not all(matches(ts, attr, value) for attr, value in kwargs.items()):
-                return False
-            if exclude and all(matches(ts, attr, value) for attr, value in exclude.items()):
-                return False
-            return True
-
+        keep = self._matcher(predicates, location, variable, unit, kwargs)
         matching_timeseries = [ts for ts in self.timeseries if keep(ts)]
 
         if not matching_timeseries:
@@ -264,6 +386,76 @@ class Dataset(pyd.BaseModel, Generic[T]):
             return matching_timeseries[0].model_copy(deep=True)
 
         return self.model_copy(update={"timeseries": matching_timeseries})
+
+    def pop(
+        self,
+        *predicates: Where,
+        location: str | list | None = None,
+        variable: str | list | None = None,
+        unit: str | list | None = None,
+        **kwargs: str | list,
+    ) -> T | Dataset:
+        """Remove and return the matching timeseries, mutating the Dataset in place.
+
+        Selection works exactly like :meth:`filter` (same ``location`` / ``variable`` /
+        ``unit`` / keyword filters, ``~`` negation, and :class:`Where` predicates), but
+        the matched timeseries are **removed** from this Dataset and returned **by
+        reference** (not copied) - so you can alter them and ``add()`` them back in their
+        new form::
+
+            ts = ds.pop(location="PB03B", sensor="AV319")   # taken out of ds
+            ts.ts = ts.ts - 300                             # edit the live series
+            ds.add(ts)                                       # put it back, changed
+
+        Parameters:
+            *predicates (Where): Predicate objects; all must match (combine with ``& | ~``).
+            location (str | list, optional): The location name(s); ``~`` negates.
+            variable (str | list, optional): The variable(s) being measured; ``~`` negates.
+            unit (str | list, optional): Unit(s) of the measurement; ``~`` negates.
+            **kwargs (str | list): Other timeseries attributes to match (e.g., sensor).
+
+        Returns:
+            Timeseries | Dataset: A single Timeseries if exactly one match is removed, a
+                new Dataset of them if several match, or an empty Dataset if none match
+                (in which case nothing is removed).
+        """
+        keep = self._matcher(predicates, location, variable, unit, kwargs)
+
+        popped: list[T | None] = []
+        remaining: list[T | None] = []
+        for ts in self.timeseries:
+            (popped if keep(ts) else remaining).append(ts)
+
+        self.timeseries = remaining
+
+        if not popped:
+            return Dataset()
+        if len(popped) == 1:
+            return popped[0]
+        return Dataset(timeseries=popped)
+
+    def _matcher(
+        self,
+        predicates: tuple,
+        location: str | list | None,
+        variable: str | list | None,
+        unit: str | list | None,
+        kwargs: dict,
+    ) -> Any:
+        """Build the ``keep(ts)`` predicate shared by :meth:`filter` and :meth:`pop`.
+
+        A timeseries is kept when it matches every keyword filter (``~`` negation
+        included) and every positional :class:`Where` predicate. ``None`` entries never
+        match.
+        """
+        keywords = {"location": location, "variable": variable, "unit": unit, **kwargs}
+        tests = [Where(**{attr: value}) for attr, value in keywords.items() if value is not None]
+        tests.extend(predicates)
+
+        def keep(ts: T | None) -> bool:
+            return ts is not None and all(test(ts) for test in tests)
+
+        return keep
 
     def to_sql(self, db: DatabaseConnection) -> None:
         """Save the entire timeseries to a SQLite database.
@@ -285,50 +477,111 @@ class Dataset(pyd.BaseModel, Generic[T]):
 
     def plot(
         self,
+        facet: str = "variable",
+        variable: str | list | None = None,
+        ncols: int = 5,
+        sharex: bool = False,
         include_outliers: bool = False,
         plot_kwargs: dict[str, Any] | None = None,
         legend_kwargs: dict[str, Any] | None = None,
-    ) -> tuple[Figure, Axes]:
-        """Plots the timeseries data, grouping by variable type.
+    ) -> tuple[Figure, list] | dict[str, tuple[Figure, list]]:
+        """Plot the dataset's timeseries, in one of two layouts.
+
+        - ``facet="variable"`` (default): one subplot per variable (pressure,
+          temperature, ...), every location's series overlaid on that axis. Returns
+          ``(fig, axes)`` where ``axes`` is a list (one per variable).
+        - ``facet="location"``: a **separate figure per variable**, each a grid with one
+          panel per location (``ncols`` wide). Every location gets a panel - left empty
+          if it has no (or empty) series for that variable - and unused trailing cells are
+          hidden. Multiple sensors at a location are overlaid in the same panel, and a
+          legend (labelled by **sensor serial**) is shown only then; single-series panels
+          get no legend. Panels are titled by location and carry no x-label (the dates are
+          on the shared/rotated ticks). Returns ``{variable: (fig, axes)}``.
 
         Parameters:
+            facet (str): ``"variable"`` or ``"location"``.
+            variable (str | list, optional): restrict to these variable(s); default is
+                every unique variable in the dataset.
+            ncols (int): panels per row for the ``facet="location"`` grid.
+            sharex (bool): for ``facet="location"``, share the x-axis across all panels so
+                every row and column is aligned to the same (full) time span - the
+                longest-running series sets the extent, and empty panels span it too.
             include_outliers (bool): Whether to include outliers in the plot.
-            plot_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.plot() method to customize the plot.
-            legend_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.legend() to customize the legend.
+            plot_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.plot().
+            legend_kwargs (dict[str, Any] | None): kwargs passed to matplotlib.axes.Axes.legend().
 
         Returns:
-            (fig, ax): Matplotlib figure and axes to allow further customization.
+            ``(fig, axes)`` for ``facet="variable"``; a ``{variable: (fig, axes)}`` dict
+            for ``facet="location"``.
         """
-
-        grouped_ts = defaultdict(list)
-
-        for ts in self.timeseries:
-            if ts:
-                grouped_ts[ts.variable].append(ts)
-
-        num_variables = len(grouped_ts)
-
-        fig, axes = plt.subplots(
-            num_variables, 1, figsize=(10, 5 * num_variables), sharex=True
+        variables = (
+            [variable]
+            if isinstance(variable, str)
+            else list(variable)
+            if variable is not None
+            else sorted({ts.variable for ts in self.timeseries if ts is not None})
         )
 
-        if num_variables == 1:
-            axes = [axes]
+        if facet == "variable":
+            fig, axes = plt.subplots(
+                len(variables), 1, figsize=(10, 5 * len(variables)), sharex=True, squeeze=False
+            )
+            axes = list(axes.ravel())
+            for ax, var in zip(axes, variables, strict=False):
+                for ts in self.timeseries:
+                    if ts is not None and ts.variable == var and len(ts.ts) > 0:
+                        ts.plot(
+                            include_outliers=include_outliers,
+                            ax=ax,
+                            plot_kwargs=plot_kwargs,
+                            legend_kwargs=legend_kwargs,
+                        )
+                ax.set_title(f"Timeseries for {var.capitalize()}")
+                ax.set_xlabel("Time")
+            fig.tight_layout()
+            return fig, axes
 
-        for ax, (variable, ts_list) in zip(axes, grouped_ts.items(), strict=False):
-            for ts in ts_list:
-                ts.plot(
-                    include_outliers=include_outliers,
-                    ax=ax,
-                    plot_kwargs=plot_kwargs,
-                    legend_kwargs=legend_kwargs,
+        if facet == "location":
+            locations = self.get_locations()
+            nrows = (len(locations) + ncols - 1) // ncols if locations else 1
+            pkw = {"lw": 0.7, **(plot_kwargs or {})}
+            lkw = {"fontsize": 7, **(legend_kwargs or {})}
+            results: dict[str, tuple[Figure, list]] = {}
+            for var in variables:
+                fig, axs = plt.subplots(
+                    nrows, ncols, figsize=(4 * ncols, 2.3 * nrows), squeeze=False, sharex=sharex
                 )
+                axes = list(axs.ravel())
+                for ax, loc in zip(axes, locations, strict=False):
+                    series = [
+                        ts
+                        for ts in self.timeseries
+                        if ts is not None
+                        and ts.location == loc
+                        and ts.variable == var
+                        and len(ts.ts) > 0
+                    ]
+                    for ts in series:
+                        ax.plot(ts.ts.index, ts.ts.to_numpy(), label=ts.sensor, **pkw)
+                        if include_outliers and ts.outliers is not None and len(ts.outliers) > 0:
+                            ax.scatter(ts.outliers.index, ts.outliers, color="red", s=5)
+                    ax.set_title(loc, fontsize=8)  # every location keeps a panel, even if empty
+                    ax.tick_params(labelsize=6)
+                    for label in ax.get_xticklabels():
+                        label.set_rotation(45)
+                        label.set_ha("right")
+                    # only worth a legend when sensors share a panel; label them by serial
+                    if len(series) > 1:
+                        ax.legend(**lkw)
+                for ax in axes[len(locations):]:
+                    ax.set_visible(False)  # hide unused trailing cells
+                fig.suptitle(f"{var.capitalize()} by location", fontsize=13)
+                fig.tight_layout(rect=(0, 0, 1, 0.98))  # leave room for the suptitle
+                results[var] = (fig, axes)
+            return results
 
-            ax.set_title(f"Timeseries for {variable.capitalize()}")
-            ax.set_xlabel("Time")
-
-        fig.tight_layout()
-        return fig, axes
+        message = f"facet must be 'variable' or 'location', got {facet!r}."
+        raise ValueError(message)
 
 
 def _coverage_segments(index: pd.DatetimeIndex, threshold: pd.Timedelta) -> list[tuple]:
@@ -357,31 +610,17 @@ class Coverage:
     its record count and time span) and renders as that table in a notebook. Call
     :meth:`plot` for a coverage timeline (one row per location; bars span contiguous
     data, breaks mark gaps longer than ``max_gap``).
+
+    The table is :attr:`Dataset.info` with a derived ``duration`` column appended, so
+    the per-series summary has a single source.
     """
 
-    columns = ["location", "variable", "sensor", "unit", "records", "start", "end", "duration"]
+    columns = ["location", "variable", "sensor", "records", "start", "end", "duration"]
 
     def __init__(self, dataset: Dataset) -> None:
         self._dataset = dataset
-        table = pd.DataFrame(
-            [
-                {
-                    "location": ts.location,
-                    "variable": ts.variable,
-                    "sensor": getattr(ts, "sensor", None),
-                    "unit": ts.unit,
-                    "records": len(ts.ts),
-                    "start": ts.ts.index.min(),
-                    "end": ts.ts.index.max(),
-                    "duration": ts.ts.index.max() - ts.ts.index.min(),
-                }
-                for ts in dataset
-                if ts is not None and len(ts.ts) > 0
-            ],
-            columns=self.columns,
-        )
-        if not table.empty:
-            table = table.sort_values(["location", "variable"]).reset_index(drop=True)
+        table = dataset.info
+        table["duration"] = table["end"] - table["start"]
         self.table = table
 
     def __repr__(self) -> str:
@@ -461,34 +700,49 @@ class CoverageDiff:
         self.key = tuple(key)
         self.labels = list(datasets)
 
-        # per label: key-tuple -> {sensor, records, start, end, index}
+        # per label: key-tuple -> {sensor, records, start, end}, collapsed from the
+        # dataset's `.info` table; plus the union DatetimeIndex per key, kept only for
+        # the timeline plot.
         self._coverage: dict[str, dict[tuple, dict]] = {}
+        self._index: dict[str, dict[tuple, pd.DatetimeIndex]] = {}
         for label, dataset in datasets.items():
-            grouped: dict[tuple, dict] = {}
+            self._coverage[label] = self._summarise(dataset.info)
+            index_by_key: dict[tuple, pd.DatetimeIndex] = {}
             for ts in dataset:
                 if ts is None or len(ts.ts) == 0:
                     continue
                 k = tuple(getattr(ts, attr) for attr in self.key)
-                entry = grouped.setdefault(k, {"sensors": set(), "index": None})
-                entry["index"] = (
-                    ts.ts.index
-                    if entry["index"] is None
-                    else entry["index"].union(ts.ts.index)
+                index_by_key[k] = (
+                    ts.ts.index if k not in index_by_key else index_by_key[k].union(ts.ts.index)
                 )
-                entry["sensors"].add(getattr(ts, "sensor", None))
-            self._coverage[label] = {
-                k: {
-                    "sensor": "+".join(sorted(s for s in v["sensors"] if s)) or None,
-                    "records": len(v["index"]),
-                    "start": v["index"].min(),
-                    "end": v["index"].max(),
-                    "index": v["index"].sort_values(),
-                }
-                for k, v in grouped.items()
-            }
+            self._index[label] = {k: idx.sort_values() for k, idx in index_by_key.items()}
 
         self.keys = sorted({k for cov in self._coverage.values() for k in cov})
         self.table = self._build_table()
+
+    def _summarise(self, info: pd.DataFrame) -> dict[tuple, dict]:
+        """Collapse a :attr:`Dataset.info` table into one summary row per comparison
+        ``key`` (the key columns must be present in ``info``). Timeseries sharing a key
+        are merged: sensors joined, records summed, span widened to the outer bounds."""
+        summary: dict[tuple, dict] = {}
+        for row in info.itertuples(index=False):
+            k = tuple(getattr(row, attr) for attr in self.key)
+            entry = summary.setdefault(
+                k, {"sensors": set(), "records": 0, "start": row.start, "end": row.end}
+            )
+            entry["sensors"].add(row.sensor)
+            entry["records"] += int(row.records)
+            entry["start"] = min(entry["start"], row.start)
+            entry["end"] = max(entry["end"], row.end)
+        return {
+            k: {
+                "sensor": "+".join(sorted(s for s in v["sensors"] if s)) or None,
+                "records": v["records"],
+                "start": v["start"],
+                "end": v["end"],
+            }
+            for k, v in summary.items()
+        }
 
     def _status(self, k: tuple) -> str:
         present = [lab for lab in self.labels if k in self._coverage[lab]]
@@ -566,12 +820,12 @@ class CoverageDiff:
         sub_h = 0.8 / n
         for row, k in enumerate(self.keys):
             for j, label in enumerate(self.labels):
-                info = self._coverage[label].get(k)
-                if info is None:
+                index = self._index[label].get(k)
+                if index is None or len(index) == 0:
                     continue
                 y = row - 0.4 + j * sub_h
                 ax.broken_barh(
-                    _coverage_segments(info["index"], threshold),
+                    _coverage_segments(index, threshold),
                     (y, sub_h * 0.9),
                     facecolors=colors[label],
                 )

@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from gensor.core.dataset import Coverage, CoverageDiff, Dataset, diff
+from gensor.core.dataset import Coverage, CoverageDiff, Dataset, Where, diff
 from gensor.core.timeseries import Timeseries
 from gensor.io.read import read_from_sql
 
@@ -109,30 +109,123 @@ def test_filter_with_attribute_as_list(synthetic_dataset):
     assert "Sensor 3" in sensors_in_result
 
 
-def test_filter_exclude_single_location(synthetic_dataset):
-    """exclude= drops timeseries matching the given attribute."""
-    result = synthetic_dataset.filter(exclude={"location": "Station A"})
+def test_filter_negate_single_location(synthetic_dataset):
+    """A ``~``-prefixed value drops timeseries with that attribute value."""
+    result = synthetic_dataset.filter(location="~Station A")
     assert isinstance(result, Timeseries)
     assert result.location == "Station B"
 
 
-def test_filter_exclude_location_list(synthetic_dataset):
-    """exclude= accepts a list (drop any location in the list)."""
-    result = synthetic_dataset.filter(exclude={"location": ["Station A", "Station B"]})
+def test_filter_negate_location_list(synthetic_dataset):
+    """A list of ``~``-prefixed values drops any location in the list."""
+    result = synthetic_dataset.filter(location=["~Station A", "~Station B"])
     assert isinstance(result, Dataset)
     assert len(result) == 0
 
 
-def test_filter_exclude_attribute_pair_is_anded(synthetic_dataset):
-    """All conditions in exclude must match (AND): only Station B / Sensor 2 is dropped."""
-    result = synthetic_dataset.filter(exclude={"location": "Station B", "sensor": "Sensor 2"})
+def test_filter_negate_by_kwarg(synthetic_dataset):
+    """Negation works on keyword attributes too (e.g. drop a single sensor)."""
+    result = synthetic_dataset.filter(sensor="~Sensor 2")
     assert isinstance(result, Timeseries)
     assert result.location == "Station A"
 
 
-def test_filter_include_and_exclude_combined(synthetic_dataset):
-    """exclude= is applied on top of the include filters."""
-    result = synthetic_dataset.filter(variable="pressure", exclude={"location": "Station A"})
+def test_filter_include_and_negate_combined(synthetic_dataset):
+    """Positive and negated filters are AND-ed across attributes."""
+    result = synthetic_dataset.filter(variable="pressure", location="~Station A")
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station B"
+
+
+def test_filter_mixed_include_and_negate_one_attribute(synthetic_dataset):
+    """Positive and negated values may be mixed within a single attribute."""
+    result = synthetic_dataset.filter(location=["Station A", "Station B", "~Station A"])
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station B"
+
+
+def test_filter_with_where_predicate_negated_combination(synthetic_dataset):
+    """filter() accepts Where predicates; ~Where(a, b) drops only the (a AND b) series."""
+    result = synthetic_dataset.filter(~Where(location="Station A", sensor="Sensor 1"))
+    assert isinstance(result, Timeseries)
+    assert result.location == "Station B"
+
+
+def test_pop_removes_and_returns(synthetic_dataset):
+    """pop() returns the matching timeseries and removes it from the dataset."""
+    n = len(synthetic_dataset)
+    popped = synthetic_dataset.pop(location="Station A")
+    assert isinstance(popped, Timeseries)
+    assert popped.location == "Station A"
+    assert len(synthetic_dataset) == n - 1
+    assert "Station A" not in synthetic_dataset
+
+
+def test_pop_returns_reference_for_roundtrip(synthetic_dataset):
+    """pop() returns the live object (not a copy); edit then add() round-trips."""
+    ts = synthetic_dataset.pop(location="Station A")
+    ts.ts = ts.ts * 0 + 42.0
+    synthetic_dataset.add(ts)
+    assert (synthetic_dataset["Station A"].ts == 42.0).all()
+
+
+def test_loc_slices_every_timeseries(pb01a_timeseries, baro_timeseries):
+    """ds.loc[start:end] slices each timeseries by label and returns a new Dataset."""
+    ds = Dataset(timeseries=[pb01a_timeseries, baro_timeseries[0]])
+    start, end = "2021-01-01", "2021-06-30"
+
+    sub = ds.loc[start:end]
+
+    assert isinstance(sub, Dataset)
+    assert len(sub) == len(ds)
+    for ts in sub:
+        assert str(ts.ts.index.min().date()) >= start
+        assert str(ts.ts.index.max().date()) <= end
+    # original is untouched
+    assert pb01a_timeseries.ts.index.min() < pd.Timestamp(start, tz="UTC")
+
+
+def test_loc_scalar_key_raises(synthetic_dataset):
+    """A point lookup (scalar per series) is rejected with a clear message."""
+    ts0 = synthetic_dataset[0].ts.index[0]
+    with pytest.raises(TypeError, match="label slice"):
+        synthetic_dataset.loc[ts0]
+
+
+def test_pop_no_match_removes_nothing(synthetic_dataset):
+    """pop() with no match returns an empty Dataset and leaves the dataset unchanged."""
+    n = len(synthetic_dataset)
+    result = synthetic_dataset.pop(location="Nonexistent")
+    assert isinstance(result, Dataset)
+    assert len(result) == 0
+    assert len(synthetic_dataset) == n
+
+
+def test_filter_negated_combination_spares_partial_match(synthetic_dataset):
+    """~Where(a, b) must NOT drop series that match only some of the combined conditions."""
+    # No series is (Station A AND Sensor 2), so the negated combination drops nothing.
+    result = synthetic_dataset.filter(~Where(location="Station A", sensor="Sensor 2"))
+    assert isinstance(result, Dataset)
+    assert len(result) == 2
+
+
+def test_filter_union_of_negated_predicates(synthetic_dataset):
+    """Several negated predicates AND together to remove the union of their matches."""
+    result = synthetic_dataset.filter(~Where(location="Station A"), ~Where(location="Station B"))
+    assert isinstance(result, Dataset)
+    assert len(result) == 0
+
+
+def test_where_or_combination(synthetic_dataset):
+    """Where supports | (or): keep series matching either branch."""
+    result = synthetic_dataset.filter(Where(location="Station A") | Where(location="Station B"))
+    assert isinstance(result, Dataset)
+    assert len(result) == 2
+
+
+def test_where_and_with_keyword_filter(synthetic_dataset):
+    """A positional Where is AND-ed with the keyword filters in the same call."""
+    result = synthetic_dataset.filter(~Where(location="Station A"), variable="pressure")
     assert isinstance(result, Timeseries)
     assert result.location == "Station B"
 
@@ -292,6 +385,16 @@ def test_coverage_table(synthetic_dataset):
     assert len(coverage.table) == len(synthetic_dataset)
     assert set(coverage.table["location"]) == {"Station A", "Station B"}
     assert (coverage.table["records"] > 0).all()
+
+
+def test_info_table(synthetic_dataset):
+    """Dataset.info is a per-timeseries metadata table."""
+    info = synthetic_dataset.info
+    assert isinstance(info, pd.DataFrame)
+    assert list(info.columns) == ["location", "variable", "sensor", "records", "start", "end"]
+    assert len(info) == len(synthetic_dataset)
+    assert set(info["location"]) == {"Station A", "Station B"}
+    assert (info["records"] > 0).all()
 
 
 def test_coverage_plot_returns_fig_ax(synthetic_dataset):

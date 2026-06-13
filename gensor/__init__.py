@@ -1,16 +1,18 @@
 import logging
 
-from .core.dataset import Dataset, diff
+from .core.dataset import Dataset, Where, diff
 from .core.timeseries import Timeseries
 from .io.read import read_from_csv, read_from_sql
 from .log import set_log_level
-from .processing.compensation import compensate
+from .processing.compensation import compensate, water_column
 
 __all__ = [
     # basic data types
     "Dataset",
     "Timeseries",
+    "Where",
     "compensate",
+    "water_column",
     # comparison
     "diff",
     # getters
