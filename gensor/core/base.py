@@ -206,7 +206,7 @@ class BaseTimeseries(pyd.BaseModel):
 
     def detect_outliers(
         self: T,
-        method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        method: Literal["iqr", "zscore", "hampel", "isolation_forest", "lof"],
         rolling: bool = False,
         window: int = 6,
         remove: bool = True,
@@ -215,8 +215,10 @@ class BaseTimeseries(pyd.BaseModel):
         """Detects outliers in the timeseries using the specified method.
 
         Parameters:
-            method (Literal['iqr', 'zscore', 'isolation_forest', 'lof']): The
-                method to use for outlier detection.
+            method (Literal['iqr', 'zscore', 'hampel', 'isolation_forest', 'lof']):
+                The method to use for outlier detection. ``hampel`` is an
+                inherently windowed median/MAD filter and ignores ``rolling``,
+                using ``window`` as its centred window size.
             **kwargs: Additional kewword arguments for OutlierDetection.
 
         Returns:

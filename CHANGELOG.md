@@ -2,6 +2,18 @@
 
 All notable changes to gensor are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1]
+
+### Added
+
+- `detect_outliers(method="hampel", ...)`: a Hampel filter, a centred rolling median/MAD spike detector. Being median-based it resists the very spikes it targets, making it a robust default for isolated sensor spikes. Tunable via `window` (centred window size) and `n_sigma` (robust-sigma threshold, default 3.0).
+
+### Fixed
+
+- Rolling `iqr`/`zscore` outlier detection (`detect_outliers(..., rolling=True)`) raised `TypeError: only 0-dimensional arrays can be converted to Python scalars` on NumPy 2.x: the rolling detectors returned a 1-element array where `Series.rolling().apply(raw=True)` requires a scalar. They now return a scalar flag.
+- Non-rolling `iqr` used `np.percentile(data, 0.25)` / `0.75` (the 0.25th/0.75th percentiles, near the minimum) instead of the 25th/75th quartiles, collapsing the bounds and removing the bulk of clean data. It now uses the correct quartiles.
+- Rolling `iqr`/`zscore` no longer drop the leading points whose window is incomplete (their NaN mask was coerced to `True`); those points are now retained.
+
 ## [0.4.0]
 
 ### Added
