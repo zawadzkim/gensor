@@ -6,6 +6,10 @@ from pandas import Series
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
+# Scale factor that makes the median absolute deviation a consistent estimator
+# of the standard deviation for normally distributed data.
+_MAD_TO_STD = 1.4826
+
 
 class OutlierDetection:
     """Detecting outliers in groundwater timeseries data.
@@ -16,6 +20,7 @@ class OutlierDetection:
     Methods:
         iqr: Use interquartile range (IQR).
         zscore: Use the z-score method.
+        hampel: Use the Hampel filter (rolling median absolute deviation).
         isolation_forest: Using the isolation forest algorithm.
         lof: Using the local outlier factor (LOF) method.
     """
@@ -23,7 +28,7 @@ class OutlierDetection:
     def __init__(
         self,
         data: Series,
-        method: Literal["iqr", "zscore", "isolation_forest", "lof"],
+        method: Literal["iqr", "zscore", "hampel", "isolation_forest", "lof"],
         rolling: bool,
         window: int,
         **kwargs: Any,
@@ -37,9 +42,8 @@ class OutlierDetection:
             "lof": self.lof,
         }
 
-        method_func = FUNCS[method]
-
         if method in ["iqr", "zscore"]:
+            method_func = FUNCS[method]
             # For 'iqr' and 'zscore' methods
             y = (
                 kwargs.get("k", 1.5)
@@ -48,60 +52,67 @@ class OutlierDetection:
             )
             if rolling:
                 roll = data.rolling(window=window)
-                mask = roll.apply(lambda x: method_func(x, y, rolling=True), raw=True)
+                # `raw=True` hands each window to the detector as a plain ndarray
+                # and requires a scalar return (0/1). Windows shorter than
+                # `window` yield NaN; treat those as "not an outlier" so the
+                # leading edge of the series is kept rather than dropped.
+                mask = roll.apply(
+                    lambda x: method_func(x, y, rolling=True), raw=True
+                ).fillna(0)
             else:
                 mask = method_func(data.to_numpy(), y, rolling=False)
 
-            bool_mask = mask.astype(bool)
+            bool_mask = np.asarray(mask).astype(bool)
             bool_mask_series = Series(bool_mask, index=data.index)
             self.outliers = data[bool_mask_series]
 
+        elif method == "hampel":
+            self.outliers = self.hampel(data, window=window, **kwargs)
+
         else:
             # For 'isolation_forest' and 'lof' methods
-            self.outliers = method_func(data, **kwargs)
+            self.outliers = FUNCS[method](data, **kwargs)
 
     @staticmethod
-    def iqr(data: np.ndarray, k: float, rolling: bool) -> np.ndarray:
+    def iqr(data: np.ndarray, k: float, rolling: bool) -> Any:
         """Use interquartile range (IQR).
 
         Parameters:
-            data (pandas.Series): The time series data.
+            data (np.ndarray): The time series data (a window when ``rolling``).
 
         Keyword Args:
             k (float): The multiplier for the IQR to define the range. Defaults to 1.5.
 
         Returns:
-            np.ndarray: Binary mask representing the outliers as 1.
+            When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most
+            recent point in the window; otherwise a binary mask marking outliers as 1.
         """
 
-        Q1 = np.percentile(data, 0.25)
-        Q3 = np.percentile(data, 0.75)
+        Q1 = np.percentile(data, 25)
+        Q3 = np.percentile(data, 75)
         IQR = Q3 - Q1
 
         lower_bound = Q1 - k * IQR
         upper_bound = Q3 + k * IQR
 
         if rolling:
-            return (
-                np.array([1])
-                if (data[-1] < lower_bound or data[-1] > upper_bound)
-                else np.array([0])
-            )
+            return 1.0 if (data[-1] < lower_bound or data[-1] > upper_bound) else 0.0
 
         return np.where((data < lower_bound) | (data > upper_bound), 1, 0)
 
     @staticmethod
-    def zscore(data: np.ndarray, threshold: float, rolling: bool) -> np.ndarray:
+    def zscore(data: np.ndarray, threshold: float, rolling: bool) -> Any:
         """Use the z-score method.
 
         Parameters:
-            data (pandas.Series): The time series data.
+            data (np.ndarray): The time series data (a window when ``rolling``).
 
         Keyword Args:
             threshold (float): The threshold for the z-score method. Defaults to 3.0.
 
         Returns:
-            pandas.Series: Binary mask representing outliers.
+            When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most
+            recent point in the window; otherwise a binary mask marking outliers as 1.
         """
 
         mean = np.mean(data)
@@ -110,8 +121,43 @@ class OutlierDetection:
         z_scores = np.abs((data - mean) / std_dev)
 
         if rolling:
-            return np.array([1]) if z_scores[-1] > threshold else np.array([0])
+            return 1.0 if z_scores[-1] > threshold else 0.0
         return np.where(z_scores > threshold, 1, 0)
+
+    @staticmethod
+    def hampel(data: Series, window: int, n_sigma: float = 3.0) -> Series:
+        """Use the Hampel filter (rolling median absolute deviation).
+
+        For each point a centred window of size ``window`` is taken; the point is
+        flagged when its absolute deviation from the window median exceeds
+        ``n_sigma`` robust standard deviations, estimated as ``1.4826 * MAD``.
+        Being median/MAD based it is far less sensitive to the very spikes it is
+        meant to catch than the mean/std z-score, which makes it a good default
+        for isolated sensor spikes.
+
+        Parameters:
+            data (pandas.Series): The time series data.
+            window (int): Size of the centred rolling window (in samples).
+
+        Keyword Args:
+            n_sigma (float): Number of robust standard deviations beyond which a
+                point is considered an outlier. Defaults to 3.0.
+
+        Returns:
+            pandas.Series: The subset of ``data`` flagged as outliers.
+        """
+
+        rolling = data.rolling(window=window, center=True, min_periods=1)
+        median = rolling.median()
+        mad = rolling.apply(lambda x: np.median(np.abs(x - np.median(x))), raw=True)
+        threshold = n_sigma * _MAD_TO_STD * mad
+
+        deviation = (data - median).abs()
+        # A zero threshold means the window has no spread; only flag a point when
+        # it actually deviates (deviation > 0), so flat stretches stay intact.
+        outlier_mask = deviation > threshold
+
+        return data[outlier_mask]
 
     def isolation_forest(self, data: Series, **kwargs: Any) -> Series:
         """Using the isolation forest algorithm.
