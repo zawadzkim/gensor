@@ -610,6 +610,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gensor.analysis.outliers.OutlierDetection.hampel" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;hampel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gensor.analysis.outliers.OutlierDetection.iqr" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;iqr
@@ -2209,6 +2218,15 @@
   <a href="#gensor.analysis.outliers.OutlierDetection.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gensor.analysis.outliers.OutlierDetection.hampel" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;hampel
     </span>
   </a>
   
@@ -8113,6 +8131,14 @@ the dataset.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="gensor.analysis.outliers.OutlierDetection.hampel" href="#gensor.analysis.outliers.OutlierDetection.hampel">hampel</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Use the Hampel filter (rolling median absolute deviation).</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="gensor.analysis.outliers.OutlierDetection.isolation_forest" href="#gensor.analysis.outliers.OutlierDetection.isolation_forest">isolation_forest</a></code></td>
               <td>
                 <div class="doc-md-description">
@@ -8133,11 +8159,7 @@ the dataset.</p>
 
               <details class="quote">
                 <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 10</span>
-<span class="normal"> 11</span>
-<span class="normal"> 12</span>
-<span class="normal"> 13</span>
-<span class="normal"> 14</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 14</span>
 <span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -8296,7 +8318,53 @@ the dataset.</p>
 <span class="normal">170</span>
 <span class="normal">171</span>
 <span class="normal">172</span>
-<span class="normal">173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">OutlierDetection</span><span class="p">:</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">OutlierDetection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Detecting outliers in groundwater timeseries data.</span>
 
 <span class="sd">    Each method in this class returns a pandas.Series containing predicted outliers in</span>
@@ -8305,6 +8373,7 @@ the dataset.</p>
 <span class="sd">    Methods:</span>
 <span class="sd">        iqr: Use interquartile range (IQR).</span>
 <span class="sd">        zscore: Use the z-score method.</span>
+<span class="sd">        hampel: Use the Hampel filter (rolling median absolute deviation).</span>
 <span class="sd">        isolation_forest: Using the isolation forest algorithm.</span>
 <span class="sd">        lof: Using the local outlier factor (LOF) method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -8312,7 +8381,7 @@ the dataset.</p>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;hampel&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
         <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -8326,9 +8395,8 @@ the dataset.</p>
             <span class="s2">&quot;lof&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lof</span><span class="p">,</span>
         <span class="p">}</span>
 
-        <span class="n">method_func</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">]</span>
-
         <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">]:</span>
+            <span class="n">method_func</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">]</span>
             <span class="c1"># For &#39;iqr&#39; and &#39;zscore&#39; methods</span>
             <span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
@@ -8337,60 +8405,67 @@ the dataset.</p>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
                 <span class="n">roll</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
-                <span class="n">mask</span> <span class="o">=</span> <span class="n">roll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">method_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="c1"># `raw=True` hands each window to the detector as a plain ndarray</span>
+                <span class="c1"># and requires a scalar return (0/1). Windows shorter than</span>
+                <span class="c1"># `window` yield NaN; treat those as &quot;not an outlier&quot; so the</span>
+                <span class="c1"># leading edge of the series is kept rather than dropped.</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">roll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">method_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">mask</span> <span class="o">=</span> <span class="n">method_func</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-            <span class="n">bool_mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="n">bool_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
             <span class="n">bool_mask_series</span> <span class="o">=</span> <span class="n">Series</span><span class="p">(</span><span class="n">bool_mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">bool_mask_series</span><span class="p">]</span>
 
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;hampel&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hampel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># For &#39;isolation_forest&#39; and &#39;lof&#39; methods</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">method_func</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">](</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">iqr</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iqr</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Use interquartile range (IQR).</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            data (pandas.Series): The time series data.</span>
+<span class="sd">            data (np.ndarray): The time series data (a window when ``rolling``).</span>
 
 <span class="sd">        Keyword Args:</span>
 <span class="sd">            k (float): The multiplier for the IQR to define the range. Defaults to 1.5.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            np.ndarray: Binary mask representing the outliers as 1.</span>
+<span class="sd">            When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most</span>
+<span class="sd">            recent point in the window; otherwise a binary mask marking outliers as 1.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">Q1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
-        <span class="n">Q3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+        <span class="n">Q1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+        <span class="n">Q3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">75</span><span class="p">)</span>
         <span class="n">IQR</span> <span class="o">=</span> <span class="n">Q3</span> <span class="o">-</span> <span class="n">Q1</span>
 
         <span class="n">lower_bound</span> <span class="o">=</span> <span class="n">Q1</span> <span class="o">-</span> <span class="n">k</span> <span class="o">*</span> <span class="n">IQR</span>
         <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">Q3</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">IQR</span>
 
         <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
-                <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">lower_bound</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">)</span>
-                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
-            <span class="p">)</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">lower_bound</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">data</span> <span class="o">&lt;</span> <span class="n">lower_bound</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">data</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Use the z-score method.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            data (pandas.Series): The time series data.</span>
+<span class="sd">            data (np.ndarray): The time series data (a window when ``rolling``).</span>
 
 <span class="sd">        Keyword Args:</span>
 <span class="sd">            threshold (float): The threshold for the z-score method. Defaults to 3.0.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            pandas.Series: Binary mask representing outliers.</span>
+<span class="sd">            When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most</span>
+<span class="sd">            recent point in the window; otherwise a binary mask marking outliers as 1.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
@@ -8399,8 +8474,43 @@ the dataset.</p>
         <span class="n">z_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std_dev</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="n">z_scores</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">z_scores</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="k">else</span> <span class="mf">0.0</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">z_scores</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">hampel</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Use the Hampel filter (rolling median absolute deviation).</span>
+
+<span class="sd">        For each point a centred window of size ``window`` is taken; the point is</span>
+<span class="sd">        flagged when its absolute deviation from the window median exceeds</span>
+<span class="sd">        ``n_sigma`` robust standard deviations, estimated as ``1.4826 * MAD``.</span>
+<span class="sd">        Being median/MAD based it is far less sensitive to the very spikes it is</span>
+<span class="sd">        meant to catch than the mean/std z-score, which makes it a good default</span>
+<span class="sd">        for isolated sensor spikes.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            data (pandas.Series): The time series data.</span>
+<span class="sd">            window (int): Size of the centred rolling window (in samples).</span>
+
+<span class="sd">        Keyword Args:</span>
+<span class="sd">            n_sigma (float): Number of robust standard deviations beyond which a</span>
+<span class="sd">                point is considered an outlier. Defaults to 3.0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pandas.Series: The subset of ``data`` flagged as outliers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rolling</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">rolling</span><span class="o">.</span><span class="n">median</span><span class="p">()</span>
+        <span class="n">mad</span> <span class="o">=</span> <span class="n">rolling</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">x</span><span class="p">))),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">n_sigma</span> <span class="o">*</span> <span class="n">_MAD_TO_STD</span> <span class="o">*</span> <span class="n">mad</span>
+
+        <span class="n">deviation</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+        <span class="c1"># A zero threshold means the window has no spread; only flag a point when</span>
+        <span class="c1"># it actually deviates (deviation &gt; 0), so flat stretches stay intact.</span>
+        <span class="n">outlier_mask</span> <span class="o">=</span> <span class="n">deviation</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">outlier_mask</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">isolation_forest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Using the isolation forest algorithm.</span>
@@ -8490,12 +8600,7 @@ the dataset.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
 <span class="normal">31</span>
@@ -8528,10 +8633,23 @@ the dataset.</p>
 <span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span>
-<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span>
-    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;hampel&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
     <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -8545,9 +8663,8 @@ the dataset.</p>
         <span class="s2">&quot;lof&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lof</span><span class="p">,</span>
     <span class="p">}</span>
 
-    <span class="n">method_func</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">]</span>
-
     <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">]:</span>
+        <span class="n">method_func</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">]</span>
         <span class="c1"># For &#39;iqr&#39; and &#39;zscore&#39; methods</span>
         <span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
@@ -8556,17 +8673,216 @@ the dataset.</p>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
             <span class="n">roll</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">roll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">method_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># `raw=True` hands each window to the detector as a plain ndarray</span>
+            <span class="c1"># and requires a scalar return (0/1). Windows shorter than</span>
+            <span class="c1"># `window` yield NaN; treat those as &quot;not an outlier&quot; so the</span>
+            <span class="c1"># leading edge of the series is kept rather than dropped.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">roll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">method_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">method_func</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">y</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">bool_mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">bool_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="n">bool_mask_series</span> <span class="o">=</span> <span class="n">Series</span><span class="p">(</span><span class="n">bool_mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">bool_mask_series</span><span class="p">]</span>
 
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;hampel&quot;</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hampel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># For &#39;isolation_forest&#39; and &#39;lof&#39; methods</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">method_func</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outliers</span> <span class="o">=</span> <span class="n">FUNCS</span><span class="p">[</span><span class="n">method</span><span class="p">](</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h5 id="gensor.analysis.outliers.OutlierDetection.hampel" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">hampel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">n_sigma</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+<a href="#gensor.analysis.outliers.OutlierDetection.hampel" class="headerlink" title="Permanent link">&para;</a></h5>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Use the Hampel filter (rolling median absolute deviation).</p>
+<p>For each point a centred window of size <code>window</code> is taken; the point is
+flagged when its absolute deviation from the window median exceeds
+<code>n_sigma</code> robust standard deviations, estimated as <code>1.4826 * MAD</code>.
+Being median/MAD based it is far less sensitive to the very spikes it is
+meant to catch than the mean/std z-score, which makes it a good default
+for isolated sensor spikes.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>data</code></td>
+            <td>
+                  <code><span title="pandas.Series">Series</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The time series data.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>window</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of the centred rolling window (in samples).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Other Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>n_sigma</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of robust standard deviations beyond which a
+point is considered an outlier. Defaults to 3.0.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.Series">Series</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pandas.Series: The subset of <code>data</code> flagged as outliers.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">hampel</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use the Hampel filter (rolling median absolute deviation).</span>
+
+<span class="sd">    For each point a centred window of size ``window`` is taken; the point is</span>
+<span class="sd">    flagged when its absolute deviation from the window median exceeds</span>
+<span class="sd">    ``n_sigma`` robust standard deviations, estimated as ``1.4826 * MAD``.</span>
+<span class="sd">    Being median/MAD based it is far less sensitive to the very spikes it is</span>
+<span class="sd">    meant to catch than the mean/std z-score, which makes it a good default</span>
+<span class="sd">    for isolated sensor spikes.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        data (pandas.Series): The time series data.</span>
+<span class="sd">        window (int): Size of the centred rolling window (in samples).</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        n_sigma (float): Number of robust standard deviations beyond which a</span>
+<span class="sd">            point is considered an outlier. Defaults to 3.0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pandas.Series: The subset of ``data`` flagged as outliers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rolling</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">median</span> <span class="o">=</span> <span class="n">rolling</span><span class="o">.</span><span class="n">median</span><span class="p">()</span>
+    <span class="n">mad</span> <span class="o">=</span> <span class="n">rolling</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">x</span><span class="p">))),</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">n_sigma</span> <span class="o">*</span> <span class="n">_MAD_TO_STD</span> <span class="o">*</span> <span class="n">mad</span>
+
+    <span class="n">deviation</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+    <span class="c1"># A zero threshold means the window has no spread; only flag a point when</span>
+    <span class="c1"># it actually deviates (deviation &gt; 0), so flat stretches stay intact.</span>
+    <span class="n">outlier_mask</span> <span class="o">=</span> <span class="n">deviation</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">outlier_mask</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8605,11 +8921,11 @@ the dataset.</p>
           <tr class="doc-section-item">
             <td><code>data</code></td>
             <td>
-                  <code><span title="pandas.Series">Series</span></code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The time series data.</p>
+                <p>The time series data (a window when <code>rolling</code>).</p>
               </div>
             </td>
             <td>
@@ -8656,11 +8972,21 @@ the dataset.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>np.ndarray: Binary mask representing the outliers as 1.</p>
+                <p>When <code>rolling</code> a scalar flag (1.0 outlier / 0.0 inlier) for the most</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>recent point in the window; otherwise a binary mask marking outliers as 1.</p>
               </div>
             </td>
           </tr>
@@ -8669,61 +8995,55 @@ the dataset.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">iqr</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">iqr</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Use interquartile range (IQR).</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        data (pandas.Series): The time series data.</span>
+<span class="sd">        data (np.ndarray): The time series data (a window when ``rolling``).</span>
 
 <span class="sd">    Keyword Args:</span>
 <span class="sd">        k (float): The multiplier for the IQR to define the range. Defaults to 1.5.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        np.ndarray: Binary mask representing the outliers as 1.</span>
+<span class="sd">        When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most</span>
+<span class="sd">        recent point in the window; otherwise a binary mask marking outliers as 1.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">Q1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
-    <span class="n">Q3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+    <span class="n">Q1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">Q3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">75</span><span class="p">)</span>
     <span class="n">IQR</span> <span class="o">=</span> <span class="n">Q3</span> <span class="o">-</span> <span class="n">Q1</span>
 
     <span class="n">lower_bound</span> <span class="o">=</span> <span class="n">Q1</span> <span class="o">-</span> <span class="n">k</span> <span class="o">*</span> <span class="n">IQR</span>
     <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">Q3</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">IQR</span>
 
     <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">lower_bound</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">)</span>
-            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">lower_bound</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
 
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">data</span> <span class="o">&lt;</span> <span class="n">lower_bound</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">data</span> <span class="o">&gt;</span> <span class="n">upper_bound</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -8894,36 +9214,36 @@ the dataset.</p>
 </details>
             <details class="quote">
               <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">isolation_forest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">isolation_forest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Using the isolation forest algorithm.</span>
 
 <span class="sd">    Parameters:</span>
@@ -9107,33 +9427,33 @@ the dataset.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">lof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">lof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Series</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Using the local outlier factor (LOF) method.</span>
 
 <span class="sd">    Parameters:</span>
@@ -9198,11 +9518,11 @@ the dataset.</p>
           <tr class="doc-section-item">
             <td><code>data</code></td>
             <td>
-                  <code><span title="pandas.Series">Series</span></code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The time series data.</p>
+                <p>The time series data (a window when <code>rolling</code>).</p>
               </div>
             </td>
             <td>
@@ -9249,11 +9569,21 @@ the dataset.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>pandas.Series: Binary mask representing outliers.</p>
+                <p>When <code>rolling</code> a scalar flag (1.0 outlier / 0.0 inlier) for the most</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>recent point in the window; otherwise a binary mask marking outliers as 1.</p>
               </div>
             </td>
           </tr>
@@ -9262,17 +9592,7 @@ the dataset.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/analysis/outliers.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">103</span>
 <span class="normal">104</span>
 <span class="normal">105</span>
 <span class="normal">106</span>
@@ -9283,18 +9603,30 @@ the dataset.</p>
 <span class="normal">111</span>
 <span class="normal">112</span>
 <span class="normal">113</span>
-<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Use the z-score method.</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        data (pandas.Series): The time series data.</span>
+<span class="sd">        data (np.ndarray): The time series data (a window when ``rolling``).</span>
 
 <span class="sd">    Keyword Args:</span>
 <span class="sd">        threshold (float): The threshold for the z-score method. Defaults to 3.0.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        pandas.Series: Binary mask representing outliers.</span>
+<span class="sd">        When ``rolling`` a scalar flag (1.0 outlier / 0.0 inlier) for the most</span>
+<span class="sd">        recent point in the window; otherwise a binary mask marking outliers as 1.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
@@ -9303,7 +9635,7 @@ the dataset.</p>
     <span class="n">z_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std_dev</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">rolling</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="n">z_scores</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">z_scores</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="k">else</span> <span class="mf">0.0</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">z_scores</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -9974,7 +10306,9 @@ the measurement.</p>
 <span class="normal">420</span>
 <span class="normal">421</span>
 <span class="normal">422</span>
-<span class="normal">423</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">BaseTimeseries</span><span class="p">(</span><span class="n">pyd</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">BaseTimeseries</span><span class="p">(</span><span class="n">pyd</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic base class for timeseries with metadata.</span>
 
 <span class="sd">    Timeseries is a series of measurements of a single variable, in the same unit, from a</span>
@@ -10152,7 +10486,7 @@ the measurement.</p>
 
     <span class="k">def</span> <span class="nf">detect_outliers</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;hampel&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
         <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
         <span class="n">remove</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -10161,8 +10495,10 @@ the measurement.</p>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Detects outliers in the timeseries using the specified method.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            method (Literal[&#39;iqr&#39;, &#39;zscore&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]): The</span>
-<span class="sd">                method to use for outlier detection.</span>
+<span class="sd">            method (Literal[&#39;iqr&#39;, &#39;zscore&#39;, &#39;hampel&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]):</span>
+<span class="sd">                The method to use for outlier detection. ``hampel`` is an</span>
+<span class="sd">                inherently windowed median/MAD filter and ignores ``rolling``,</span>
+<span class="sd">                using ``window`` as its centred window size.</span>
 <span class="sd">            **kwargs: Additional kewword arguments for OutlierDetection.</span>
 
 <span class="sd">        Returns:</span>
@@ -10579,12 +10915,13 @@ the measurement.</p>
           <tr class="doc-section-item">
             <td><code>method</code></td>
             <td>
-                  <code><span title="typing.Literal">Literal</span>[&#39;iqr&#39;, &#39;zscore&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]</code>
+                  <code><span title="typing.Literal">Literal</span>[&#39;iqr&#39;, &#39;zscore&#39;, &#39;hampel&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The
-method to use for outlier detection.</p>
+                <p>The method to use for outlier detection. <code>hampel</code> is an
+inherently windowed median/MAD filter and ignores <code>rolling</code>,
+using <code>window</code> as its centred window size.</p>
               </div>
             </td>
             <td>
@@ -10671,9 +11008,11 @@ method to use for outlier detection.</p>
 <span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
-<span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">detect_outliers</span><span class="p">(</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">detect_outliers</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span>
-    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">,</span> <span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;hampel&quot;</span><span class="p">,</span> <span class="s2">&quot;isolation_forest&quot;</span><span class="p">,</span> <span class="s2">&quot;lof&quot;</span><span class="p">],</span>
     <span class="n">rolling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
     <span class="n">remove</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -10682,8 +11021,10 @@ method to use for outlier detection.</p>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Detects outliers in the timeseries using the specified method.</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        method (Literal[&#39;iqr&#39;, &#39;zscore&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]): The</span>
-<span class="sd">            method to use for outlier detection.</span>
+<span class="sd">        method (Literal[&#39;iqr&#39;, &#39;zscore&#39;, &#39;hampel&#39;, &#39;isolation_forest&#39;, &#39;lof&#39;]):</span>
+<span class="sd">            The method to use for outlier detection. ``hampel`` is an</span>
+<span class="sd">            inherently windowed median/MAD filter and ignores ``rolling``,</span>
+<span class="sd">            using ``window`` as its centred window size.</span>
 <span class="sd">        **kwargs: Additional kewword arguments for OutlierDetection.</span>
 
 <span class="sd">    Returns:</span>
@@ -10790,9 +11131,7 @@ method to use for outlier detection.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/core/base.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
 <span class="normal">240</span>
 <span class="normal">241</span>
 <span class="normal">242</span>
@@ -10818,7 +11157,9 @@ method to use for outlier detection.</p>
 <span class="normal">262</span>
 <span class="normal">263</span>
 <span class="normal">264</span>
-<span class="normal">265</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mask_with</span><span class="p">(</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mask_with</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">T</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;keep&quot;</span><span class="p">,</span> <span class="s2">&quot;remove&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;remove&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10963,9 +11304,7 @@ If None, a new figure and axes are created.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/core/base.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">375</span>
 <span class="normal">376</span>
 <span class="normal">377</span>
 <span class="normal">378</span>
@@ -11013,7 +11352,9 @@ If None, a new figure and axes are created.</p>
 <span class="normal">420</span>
 <span class="normal">421</span>
 <span class="normal">422</span>
-<span class="normal">423</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span>
     <span class="n">include_outliers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -11321,9 +11662,7 @@ resampled timeseries data.</p>
 
             <details class="quote">
               <summary>Source code in <code>gensor/core/base.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">269</span>
 <span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
@@ -11425,7 +11764,9 @@ resampled timeseries data.</p>
 <span class="normal">368</span>
 <span class="normal">369</span>
 <span class="normal">370</span>
-<span class="normal">371</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">to_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">DatabaseConnection</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">to_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">DatabaseConnection</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts the timeseries to a list of dictionaries and uploads it to the database.</span>
 
 <span class="sd">    The Timeseries data is uploaded to the SQL database by using the pandas</span>
